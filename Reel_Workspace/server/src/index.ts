@@ -1,7 +1,10 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import helmet from "helmet";
 import { connectDB } from "./config/db.js";
+import { authRoutes } from "./routes/auth.routes.js";
+import { errorHandler } from "./middleware/errorHandler.js";
 
 // Load environment variables
 dotenv.config();
@@ -9,7 +12,10 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// Security Middleware
+app.use(helmet());
+
+// CORS Middleware
 app.use(
   cors({
     origin:
@@ -19,6 +25,8 @@ app.use(
     credentials: true,
   })
 );
+
+// Body Parser Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -38,9 +46,16 @@ app.get("/", (req: Request, res: Response) => {
     version: "1.0.0",
     endpoints: {
       health: "/api/health",
+      auth: "/api/auth",
     },
   });
 });
+
+// API Routes
+app.use("/api/auth", authRoutes);
+
+// Global Error Handler (must be last)
+app.use(errorHandler);
 
 /**
  * Start the server and connect to database
