@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import helmet from "helmet";
 import { connectDB } from "./config/db.js";
 import { authRoutes } from "./routes/auth.routes.js";
+import { testRoutes } from "./routes/test.routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 // Load environment variables
@@ -47,12 +48,14 @@ app.get("/", (req: Request, res: Response) => {
     endpoints: {
       health: "/api/health",
       auth: "/api/auth",
+      test: "/api/test",
     },
   });
 });
 
 // API Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/test", testRoutes);
 
 // Global Error Handler (must be last)
 app.use(errorHandler);
