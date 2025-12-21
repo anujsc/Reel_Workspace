@@ -1,0 +1,477 @@
+{
+  "info": {
+    "name": "Search & Filter API Tests",
+    "description": "Complete test collection for Search and Filter functionality",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "folderId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Text Search",
+      "item": [
+        {
+          "name": "Search - Single Word",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/search?q=technology",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "technology"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search - Multiple Words",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/search?q=machine learning",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "machine learning"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search - With Pagination",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/search?q=tutorial&limit=5&skip=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "tutorial"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "skip",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search - Transcript Content",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/search?q=recruitment",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "recruitment"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search - OCR Text",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/search?q=applying jobs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "applying jobs"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search - No Query (Should Fail)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/search",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "search"]
+            }
+          }
+        },
+        {
+          "name": "Search - Query Too Short (Should Fail)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/search?q=a",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "a"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Advanced Filters",
+      "item": [
+        {
+          "name": "Filter - By Folder",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reel/filter?folderId={{folderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel", "filter"],
+              "query": [
+                {
+                  "key": "folderId",
+                  "value": "{{folderId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter - By Single Tag",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reel/filter?tags=technology",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel", "filter"],
+              "query": [
+                {
+                  "key": "tags",
+                  "value": "technology"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter - By Multiple Tags",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reel/filter?tags=technology,ai,tutorial",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel", "filter"],
+              "query": [
+                {
+                  "key": "tags",
+                  "value": "technology,ai,tutorial"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter - By Date Range",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reel/filter?dateFrom=2024-01-01&dateTo=2024-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel", "filter"],
+              "query": [
+                {
+                  "key": "dateFrom",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "dateTo",
+                  "value": "2024-12-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter - Last 7 Days",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reel/filter?dateFrom=2024-12-14&dateTo=2024-12-21",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel", "filter"],
+              "query": [
+                {
+                  "key": "dateFrom",
+                  "value": "2024-12-14"
+                },
+                {
+                  "key": "dateTo",
+                  "value": "2024-12-21"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter - Combined (Folder + Tags + Date)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reel/filter?folderId={{folderId}}&tags=technology,ai&dateFrom=2024-06-01&dateTo=2024-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel", "filter"],
+              "query": [
+                {
+                  "key": "folderId",
+                  "value": "{{folderId}}"
+                },
+                {
+                  "key": "tags",
+                  "value": "technology,ai"
+                },
+                {
+                  "key": "dateFrom",
+                  "value": "2024-06-01"
+                },
+                {
+                  "key": "dateTo",
+                  "value": "2024-12-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter - With Pagination",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reel/filter?tags=technology&limit=5&skip=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel", "filter"],
+              "query": [
+                {
+                  "key": "tags",
+                  "value": "technology"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "skip",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter - No Parameters (Should Fail)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reel/filter",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel", "filter"]
+            }
+          }
+        },
+        {
+          "name": "Filter - Invalid Date Format (Should Fail)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reel/filter?dateFrom=invalid-date",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel", "filter"],
+              "query": [
+                {
+                  "key": "dateFrom",
+                  "value": "invalid-date"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter - dateFrom > dateTo (Should Fail)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reel/filter?dateFrom=2024-12-31&dateTo=2024-01-01",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel", "filter"],
+              "query": [
+                {
+                  "key": "dateFrom",
+                  "value": "2024-12-31"
+                },
+                {
+                  "key": "dateTo",
+                  "value": "2024-01-01"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Filter Statistics",
+      "item": [
+        {
+          "name": "Get Filter Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reel/filter/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel", "filter", "stats"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

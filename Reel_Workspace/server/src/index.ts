@@ -5,6 +5,9 @@ import helmet from "helmet";
 import { connectDB } from "./config/db.js";
 import { authRoutes } from "./routes/auth.routes.js";
 import { testRoutes } from "./routes/test.routes.js";
+import { reelRoutes } from "./routes/reel.routes.js";
+import { folderRoutes } from "./routes/folder.routes.js";
+import { searchRoutes } from "./routes/search.routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 // Load environment variables
@@ -49,6 +52,9 @@ app.get("/", (req: Request, res: Response) => {
       health: "/api/health",
       auth: "/api/auth",
       test: "/api/test",
+      reel: "/api/reel",
+      folders: "/api/folders",
+      search: "/api/search",
     },
   });
 });
@@ -56,6 +62,9 @@ app.get("/", (req: Request, res: Response) => {
 // API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/test", testRoutes);
+app.use("/api/reel", reelRoutes);
+app.use("/api/folders", folderRoutes);
+app.use("/api/search", searchRoutes);
 
 // Global Error Handler (must be last)
 app.use(errorHandler);

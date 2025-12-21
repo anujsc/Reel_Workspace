@@ -1,0 +1,689 @@
+{
+  "info": {
+    "name": "Reel Workspace - Complete CRUD API",
+    "description": "Complete API collection for Reel CRUD and Folder Management",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reelId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "folderId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('token', response.data.token);",
+                  "    console.log('Token saved:', response.data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('token', response.data.token);",
+                  "    console.log('Token saved:', response.data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Folders",
+      "item": [
+        {
+          "name": "Create Folder",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('folderId', response.data.id);",
+                  "    console.log('Folder ID saved:', response.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Technology\",\n  \"color\": \"#3B82F6\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/folders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "folders"]
+            }
+          }
+        },
+        {
+          "name": "Get All Folders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/folders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "folders"]
+            }
+          }
+        },
+        {
+          "name": "Get Folder by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/folders/{{folderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "folders", "{{folderId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Folder",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tech & Innovation\",\n  \"color\": \"#10B981\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/folders/{{folderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "folders", "{{folderId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Empty Folder",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/folders/{{folderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "folders", "{{folderId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Folder with Reels (Move Strategy)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/folders/{{folderId}}?strategy=move",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "folders", "{{folderId}}"],
+              "query": [
+                {
+                  "key": "strategy",
+                  "value": "move"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Duplicate Folder (Should Fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Technology\",\n  \"color\": \"#EF4444\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/folders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "folders"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reels",
+      "item": [
+        {
+          "name": "Extract Reel",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('reelId', response.data.reel.id);",
+                  "    console.log('Reel ID saved:', response.data.reel.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instagramUrl\": \"https://www.instagram.com/reel/DSVFidFDfFo/\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reel/extract",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel", "extract"]
+            }
+          }
+        },
+        {
+          "name": "Extract Duplicate Reel (Should Fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instagramUrl\": \"https://www.instagram.com/reel/DSVFidFDfFo/\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reel/extract",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel", "extract"]
+            }
+          }
+        },
+        {
+          "name": "Get All Reels (Default Pagination)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel"]
+            }
+          }
+        },
+        {
+          "name": "Get All Reels (Custom Pagination)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reel?limit=5&skip=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "skip",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Reels by Folder",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reel?folderId={{folderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel"],
+              "query": [
+                {
+                  "key": "folderId",
+                  "value": "{{folderId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Single Reel",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reel/{{reelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel", "{{reelId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Reel Title",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Reel Title\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reel/{{reelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel", "{{reelId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Reel Folder",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"folderId\": \"{{folderId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reel/{{reelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel", "{{reelId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Reel Tags",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tags\": [\"technology\", \"ai\", \"innovation\", \"learning\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reel/{{reelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel", "{{reelId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Multiple Fields",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Complete Update Test\",\n  \"folderId\": \"{{folderId}}\",\n  \"tags\": [\"updated\", \"test\", \"complete\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reel/{{reelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel", "{{reelId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Reel",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reel/{{reelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel", "{{reelId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Invalid Reel ID (Should Fail)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reel/invalid-id-format",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel", "invalid-id-format"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Validation Tests",
+      "item": [
+        {
+          "name": "Extract with Invalid URL (Should Fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instagramUrl\": \"https://www.youtube.com/watch?v=invalid\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reel/extract",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel", "extract"]
+            }
+          }
+        },
+        {
+          "name": "Extract without URL (Should Fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reel/extract",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel", "extract"]
+            }
+          }
+        },
+        {
+          "name": "Create Folder with Invalid Color (Should Fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Folder\",\n  \"color\": \"blue\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/folders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "folders"]
+            }
+          }
+        },
+        {
+          "name": "Update Reel with Empty Title (Should Fail)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reel/{{reelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel", "{{reelId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Reels with Invalid Pagination (Should Fail)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reel?limit=200",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reel"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "200"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
