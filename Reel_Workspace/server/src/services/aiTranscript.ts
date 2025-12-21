@@ -13,14 +13,14 @@ export interface TranscriptResult {
 const MAX_AUDIO_SIZE = 20 * 1024 * 1024; // 20MB limit for Gemini
 
 /**
- * Initialize Gemini AI
+ * Initialize Gemini AI for transcription
  */
 function initializeGemini(): GoogleGenerativeAI {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY_TRANSCRIPT;
 
   if (!apiKey) {
     throw new TranscriptionError(
-      "GEMINI_API_KEY not configured in environment variables"
+      "GEMINI_API_KEY_TRANSCRIPT not configured in environment variables"
     );
   }
 
@@ -90,7 +90,7 @@ export async function transcribeAudioWithGemini(
 
     // Use Gemini Pro for audio transcription
     const model = genAI.getGenerativeModel({
-       model: "gemini-2.5-flash"  // or "gemini-2.5-flash"
+      model: "gemini-2.5-flash", // or "gemini-2.5-flash"
     });
 
     // Read audio file as base64

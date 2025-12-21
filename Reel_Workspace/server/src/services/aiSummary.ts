@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 import { SummarizationError } from "../utils/errors.js";
 
 /**
@@ -12,9 +12,9 @@ export interface SummaryResult {
 }
 
 /**
- * Expected JSON structure from Gemini
+ * Expected JSON structure from Groq
  */
-interface GeminiSummaryResponse {
+interface GroqSummaryResponse {
   summary: string;
   tags: string[];
   folder: string;
@@ -24,18 +24,18 @@ const MAX_TRANSCRIPT_LENGTH = 50000; // Characters
 const CHUNK_SIZE = 10000; // Characters per chunk
 
 /**
- * Initialize Gemini AI
+ * Initialize Groq AI
  */
-function initializeGemini(): GoogleGenerativeAI {
-  const apiKey = process.env.GEMINI_API_KEY;
+function initializeGroq(): Groq {
+  const apiKey = process.env.GROQ_API_KEY;
 
   if (!apiKey) {
     throw new SummarizationError(
-      "GEMINI_API_KEY not configured in environment variables"
+      "GROQ_API_KEY not configured in environment variables"
     );
   }
 
-  return new GoogleGenerativeAI(apiKey);
+  return new Groq({ apiKey });
 }
 
 /**
@@ -51,33 +51,32 @@ function normalizeTags(tags: string[]): string[] {
 }
 
 /**
- * Parse JSON response from Gemini
+ * Parse Groq JSON response
  */
-function parseGeminiResponse(text: string): GeminiSummaryResponse {
+function parseGroqResponse(responseText: string): GroqSummaryResponse {
   try {
-    // Try to extract JSON from markdown code blocks
-    const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
-    const jsonText = jsonMatch ? jsonMatch[1] : text;
-
-    const parsed = JSON.parse(jsonText);
+    // Try to parse as JSON directly
+    const parsed = JSON.parse(responseText);
 
     // Validate required fields
-    if (!parsed.summary || typeof parsed.summary !== "string") {
-      throw new Error("Missing or invalid 'summary' field");
+    if (!parsed.summary || !parsed.tags || !parsed.folder) {
+      throw new Error("Missing required fields in response");
     }
 
+    // Ensure tags is an array
     if (!Array.isArray(parsed.tags)) {
-      throw new Error("Missing or invalid 'tags' field");
+      throw new Error("Tags must be an array");
     }
 
-    if (!parsed.folder || typeof parsed.folder !== "string") {
-      throw new Error("Missing or invalid 'folder' field");
-    }
-
-    return parsed as GeminiSummaryResponse;
+    return {
+      summary: String(parsed.summary),
+      tags: parsed.tags.map((tag: any) => String(tag)),
+      folder: String(parsed.folder),
+    };
   } catch (error) {
+    console.error(`[AI Summary] Failed to parse response:`, responseText);
     throw new SummarizationError(
-      `Failed to parse Gemini response as JSON: ${
+      `Failed to parse Groq response: ${
         error instanceof Error ? error.message : error
       }`
     );
@@ -85,65 +84,11 @@ function parseGeminiResponse(text: string): GeminiSummaryResponse {
 }
 
 /**
- * Chunk long transcript for processing
+ * Summarize transcript using Groq AI
  */
-function chunkTranscript(transcript: string): string[] {
-  if (transcript.length <= CHUNK_SIZE) {
-    return [transcript];
-  }
-
-  const chunks: string[] = [];
-  let start = 0;
-
-  while (start < transcript.length) {
-    let end = start + CHUNK_SIZE;
-
-    // Try to break at sentence boundary
-    if (end < transcript.length) {
-      const lastPeriod = transcript.lastIndexOf(".", end);
-      const lastQuestion = transcript.lastIndexOf("?", end);
-      const lastExclamation = transcript.lastIndexOf("!", end);
-
-      const breakPoint = Math.max(lastPeriod, lastQuestion, lastExclamation);
-
-      if (breakPoint > start) {
-        end = breakPoint + 1;
-      }
-    }
-
-    chunks.push(transcript.substring(start, end).trim());
-    start = end;
-  }
-
-  return chunks;
-}
-
-/**
- * Summarize a single chunk
- */
-async function summarizeChunk(
-  model: any,
-  chunk: string,
-  isPartial: boolean = false
-): Promise<string> {
-  const prompt = isPartial
-    ? `Summarize the following text segment in 2-3 sentences:\n\n${chunk}`
-    : `Summarize the following text in 3-5 sentences:\n\n${chunk}`;
-
-  const result = await model.generateContent(prompt);
-  return result.response.text().trim();
-}
-
-/**
- * Summarize transcript using Google Gemini
- */
-export async function summarizeTranscriptWithGemini(
+export async function summarizeWithGroq(
   transcript: string
 ): Promise<SummaryResult> {
-  console.log(
-    `[AI Summary] Starting summarization (${transcript.length} characters)`
-  );
-
   if (!transcript || transcript.trim().length === 0) {
     throw new SummarizationError("Transcript is empty");
   }
@@ -155,34 +100,19 @@ export async function summarizeTranscriptWithGemini(
   }
 
   try {
-    const genAI = initializeGemini();
-    // Use Gemini Pro for summarization
-    const model = genAI.getGenerativeModel({
-     model: "gemini-2.5-flash"  // or "gemini-2.5-flash"
+    const groq = initializeGroq();
+    const modelName = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
 
-    });
+    console.log(`[AI Summary] Using Groq model: ${modelName}`);
 
     let processedTranscript = transcript;
 
-    // Handle very long transcripts by chunking
+    // Handle very long transcripts by truncating (Groq has context limits)
     if (transcript.length > CHUNK_SIZE) {
-      console.log(`[AI Summary] Transcript is long, chunking...`);
-      const chunks = chunkTranscript(transcript);
-      console.log(`[AI Summary] Processing ${chunks.length} chunks`);
-
-      const chunkSummaries = await Promise.all(
-        chunks.map((chunk, index) => {
-          console.log(
-            `[AI Summary] Summarizing chunk ${index + 1}/${chunks.length}`
-          );
-          return summarizeChunk(model, chunk, true);
-        })
-      );
-
-      processedTranscript = chunkSummaries.join(" ");
       console.log(
-        `[AI Summary] Combined chunk summaries: ${processedTranscript.length} characters`
+        `[AI Summary] Transcript is long, truncating to ${CHUNK_SIZE} characters`
       );
+      processedTranscript = transcript.substring(0, CHUNK_SIZE);
     }
 
     // Create the main prompt
@@ -204,16 +134,27 @@ Rules:
 Transcript:
 ${processedTranscript}`;
 
-    console.log(`[AI Summary] Sending request to Gemini...`);
+    console.log(`[AI Summary] Sending request to Groq...`);
 
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const responseText = response.text();
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      model: modelName,
+      temperature: 0.7,
+      max_tokens: 1024,
+      response_format: { type: "json_object" },
+    });
+
+    const responseText = chatCompletion.choices[0]?.message?.content || "";
 
     console.log(`[AI Summary] Received response, parsing...`);
 
     // Parse the JSON response
-    const parsed = parseGeminiResponse(responseText);
+    const parsed = parseGroqResponse(responseText);
 
     // Normalize tags
     const normalizedTags = normalizeTags(parsed.tags);
@@ -231,26 +172,23 @@ ${processedTranscript}`;
     console.log(`[AI Summary] Folder: ${parsed.folder}`);
 
     return {
-      summary: parsed.summary.trim(),
-      tags: normalizedTags.slice(0, 7), // Limit to 7 tags
-      suggestedFolder: parsed.folder.trim().toLowerCase(),
-      rawResponse: response,
+      summary: parsed.summary,
+      tags: normalizedTags,
+      suggestedFolder: parsed.folder,
+      rawResponse: chatCompletion,
     };
   } catch (error: any) {
-    // Handle Gemini-specific errors
+    // Handle Groq-specific errors
     if (error.message?.includes("API key")) {
-      throw new SummarizationError("Invalid Gemini API key");
+      throw new SummarizationError("Invalid Groq API key");
     }
 
-    if (error.message?.includes("quota")) {
+    if (
+      error.message?.includes("quota") ||
+      error.message?.includes("rate limit")
+    ) {
       throw new SummarizationError(
-        "Gemini API quota exceeded. Please try again later."
-      );
-    }
-
-    if (error.message?.includes("safety")) {
-      throw new SummarizationError(
-        "Content was blocked by Gemini safety filters"
+        "Groq API quota exceeded. Please try again later."
       );
     }
 

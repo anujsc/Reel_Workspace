@@ -17,8 +17,8 @@ import {
   ThumbnailResult,
 } from "./thumbnailService.js";
 import { transcribeAudioWithGemini, TranscriptResult } from "./aiTranscript.js";
-import { summarizeTranscriptWithGemini, SummaryResult } from "./aiSummary.js";
-import { extractOcrFromVideoWithGemini, OcrResult } from "./aiOCR.js";
+import { summarizeWithGroq, SummaryResult } from "./aiSummary.js";
+import { extractTextFromImage, OCRResult } from "./aiOCR.js";
 import { ReelProcessingError } from "../utils/errors.js";
 
 /**
@@ -139,18 +139,16 @@ export async function processReel(
     // Step 6: Summarize transcript
     console.log(`\n[Step 6/7] Generating summary...`);
     const { result: summaryResult, durationMs: summarizationMs } =
-      await measureTime(() =>
-        summarizeTranscriptWithGemini(transcriptResult.transcript)
-      );
+      await measureTime(() => summarizeWithGroq(transcriptResult.transcript));
     console.log(`✓ Summarization complete in ${summarizationMs}ms`);
 
     // Step 7: Extract OCR text (non-critical)
     console.log(`\n[Step 7/7] Extracting OCR text...`);
-    let ocrResult: OcrResult;
+    let ocrResult: OCRResult;
     let ocrMs: number;
     try {
       const measured = await measureTime(() =>
-        extractOcrFromVideoWithGemini(videoResult.filePath)
+        extractTextFromImage(thumbnailResult.thumbnailUrl)
       );
       ocrResult = measured.result;
       ocrMs = measured.durationMs;
