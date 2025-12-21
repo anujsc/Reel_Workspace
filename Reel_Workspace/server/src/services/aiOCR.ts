@@ -73,14 +73,19 @@ export async function extractTextFromImage(
     // Download and convert image to base64
     const imageBase64 = await imageUrlToBase64(imageUrl);
 
-    // Create the OCR prompt
-    const prompt = `Extract all visible text from this image. 
-    
-Rules:
-- Return ONLY the extracted text, nothing else
-- Preserve the original text layout and formatting
-- If no text is visible, return "No text found"
-- Do not add explanations or descriptions`;
+    // Create the OCR prompt with multilingual support
+    const prompt = `Extract all visible text from this image. The text may be in Hindi, English, or mixed languages.
+
+INSTRUCTIONS:
+1. Extract all visible text accurately
+2. If text is in Hindi (Devanagari script), extract it as-is
+3. Then provide English translation
+4. Format: "Original: [Hindi text]\nEnglish: [English translation]"
+5. If text is already in English, just provide the text
+6. If no text is visible, return "No text found"
+7. Preserve layout and formatting
+
+Extract the text:`;
 
     console.log(`[AI OCR] Sending request to Groq Vision...`);
 

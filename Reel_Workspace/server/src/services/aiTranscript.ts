@@ -98,9 +98,20 @@ export async function transcribeAudioWithGemini(
 
     console.log(`[AI Transcript] Sending request to Gemini...`);
 
-    // Create the prompt
-    const prompt =
-      "Transcribe the following audio accurately. Return only the spoken text in the same language. Do not add any commentary, explanations, or formatting. Just provide the raw transcript.";
+    // Create the prompt with multilingual support
+    const prompt = `You are an expert audio transcriber supporting multiple languages including Hindi and English.
+
+INSTRUCTIONS:
+1. Listen carefully and transcribe the audio accurately
+2. If the audio is in Hindi (or any non-English language):
+   - First write the original Hindi text
+   - Then provide English translation
+   - Format: "Original: [Hindi text]\nEnglish: [English translation]"
+3. If the audio is in English, just provide the transcription
+4. Preserve the meaning and context accurately
+5. Return only the transcription, no additional commentary
+
+Transcribe this audio:`;
 
     // Generate content with audio
     const result = await model.generateContent([

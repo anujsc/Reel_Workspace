@@ -2,10 +2,55 @@ import Groq from "groq-sdk";
 import { SummarizationError } from "../utils/errors.js";
 
 /**
+ * Quiz question structure
+ */
+export interface QuizQuestion {
+  question: string;
+  options: string[];
+  answer: string;
+}
+
+/**
+ * Quick reference card structure
+ */
+export interface QuickReferenceCard {
+  facts: string[];
+  definitions: string[];
+  formulas: string[];
+}
+
+/**
+ * Common pitfall structure
+ */
+export interface CommonPitfall {
+  pitfall: string;
+  solution: string;
+}
+
+/**
+ * Glossary term structure
+ */
+export interface GlossaryTerm {
+  term: string;
+  definition: string;
+}
+
+/**
  * Result from AI summarization
  */
 export interface SummaryResult {
   summary: string;
+  detailedExplanation: string;
+  keyPoints: string[];
+  examples: string[];
+  relatedTopics: string[];
+  actionableChecklist: string[];
+  quizQuestions: QuizQuestion[];
+  quickReferenceCard: QuickReferenceCard;
+  learningPath: string[];
+  commonPitfalls: CommonPitfall[];
+  glossary: GlossaryTerm[];
+  interactivePromptSuggestions: string[];
   tags: string[];
   suggestedFolder: string;
   rawResponse?: unknown;
@@ -16,6 +61,17 @@ export interface SummaryResult {
  */
 interface GroqSummaryResponse {
   summary: string;
+  detailedExplanation: string;
+  keyPoints: string[];
+  examples: string[];
+  relatedTopics: string[];
+  actionableChecklist: string[];
+  quizQuestions: QuizQuestion[];
+  quickReferenceCard: QuickReferenceCard;
+  learningPath: string[];
+  commonPitfalls: CommonPitfall[];
+  glossary: GlossaryTerm[];
+  interactivePromptSuggestions: string[];
   tags: string[];
   folder: string;
 }
@@ -55,23 +111,55 @@ function normalizeTags(tags: string[]): string[] {
  */
 function parseGroqResponse(responseText: string): GroqSummaryResponse {
   try {
-    // Try to parse as JSON directly
     const parsed = JSON.parse(responseText);
 
-    // Validate required fields
-    if (!parsed.summary || !parsed.tags || !parsed.folder) {
-      throw new Error("Missing required fields in response");
-    }
+    // Helper to ensure array
+    const ensureArray = (value: any, defaultValue: any[] = []) =>
+      Array.isArray(value) ? value : defaultValue;
 
-    // Ensure tags is an array
-    if (!Array.isArray(parsed.tags)) {
-      throw new Error("Tags must be an array");
-    }
+    // Validate quiz questions structure
+    const quizQuestions = ensureArray(parsed.quizQuestions).map((q: any) => ({
+      question: String(q?.question || ""),
+      options: ensureArray(q?.options),
+      answer: String(q?.answer || ""),
+    }));
+
+    // Validate quick reference card
+    const quickReferenceCard = {
+      facts: ensureArray(parsed.quickReferenceCard?.facts),
+      definitions: ensureArray(parsed.quickReferenceCard?.definitions),
+      formulas: ensureArray(parsed.quickReferenceCard?.formulas),
+    };
+
+    // Validate common pitfalls
+    const commonPitfalls = ensureArray(parsed.commonPitfalls).map((p: any) => ({
+      pitfall: String(p?.pitfall || ""),
+      solution: String(p?.solution || ""),
+    }));
+
+    // Validate glossary
+    const glossary = ensureArray(parsed.glossary).map((g: any) => ({
+      term: String(g?.term || ""),
+      definition: String(g?.definition || ""),
+    }));
 
     return {
-      summary: String(parsed.summary),
-      tags: parsed.tags.map((tag: any) => String(tag)),
-      folder: String(parsed.folder),
+      summary: String(parsed.summary || ""),
+      detailedExplanation: String(parsed.detailedExplanation || ""),
+      keyPoints: ensureArray(parsed.keyPoints).map(String),
+      examples: ensureArray(parsed.examples).map(String),
+      relatedTopics: ensureArray(parsed.relatedTopics).map(String),
+      actionableChecklist: ensureArray(parsed.actionableChecklist).map(String),
+      quizQuestions,
+      quickReferenceCard,
+      learningPath: ensureArray(parsed.learningPath).map(String),
+      commonPitfalls,
+      glossary,
+      interactivePromptSuggestions: ensureArray(
+        parsed.interactivePromptSuggestions
+      ).map(String),
+      tags: ensureArray(parsed.tags).map(String),
+      folder: String(parsed.folder || "General"),
     };
   } catch (error) {
     console.error(`[AI Summary] Failed to parse response:`, responseText);
@@ -115,23 +203,143 @@ export async function summarizeWithGroq(
       processedTranscript = transcript.substring(0, CHUNK_SIZE);
     }
 
-    // Create the main prompt
-    const prompt = `Analyze the following transcript and provide a response in STRICT JSON format with these exact fields:
+    // Create comprehensive analysis prompt with interactive features
+    const prompt = `You are an expert content analyst and educator. Analyze the following transcript deeply and provide a comprehensive, interactive learning experience.
+
+IMPORTANT: The transcript may be in Hindi, English, or mixed languages. Understand the content and provide ALL responses in English.
+
+Provide this EXACT JSON format with ALL fields:
 
 {
-  "summary": "A concise 3-5 sentence summary of the main content",
-  "tags": ["3-7 short, lowercase keywords"],
-  "folder": "A short, human-readable category name (e.g., 'education', 'entertainment', 'tutorial')"
+  "summary": "A concise 2-3 sentence overview of what the content is about",
+  
+  "detailedExplanation": "A comprehensive 4-6 paragraph explanation that covers:\n- What the topic is and why it matters\n- Key concepts explained in simple terms\n- How it works or applies in real life\n- Benefits or importance\n- Any tips or best practices mentioned\nUse clear, simple language with proper structure.",
+  
+  "keyPoints": [
+    "First main point explained clearly",
+    "Second main point with context",
+    "Third main point with details",
+    "Continue for all major points (3-7 points)"
+  ],
+  
+  "examples": [
+    "Real-world example 1 that illustrates the concept",
+    "Practical example 2 showing application",
+    "Use case example 3 (add 2-4 examples)"
+  ],
+  
+  "relatedTopics": [
+    "Related topic 1 that viewers might want to learn",
+    "Related topic 2 for deeper understanding",
+    "Related topic 3 for broader context",
+    "Add 3-5 related topics"
+  ],
+  
+  "actionableChecklist": [
+    "Step 1: Clear, actionable first step to apply this topic",
+    "Step 2: Specific second action with details",
+    "Step 3: Third practical step",
+    "Add 3-5 actionable steps users can take immediately"
+  ],
+  
+  "quizQuestions": [
+    {
+      "question": "Clear question testing understanding of key concept",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "answer": "Correct answer with brief explanation"
+    },
+    {
+      "question": "Second question on different aspect",
+      "options": ["Option A", "Option B", "Option C"],
+      "answer": "Correct answer with explanation"
+    },
+    "Add 2-3 quiz questions"
+  ],
+  
+  "quickReferenceCard": {
+    "facts": [
+      "Important fact 1",
+      "Key statistic or data point",
+      "Critical information to remember",
+      "Add 3-5 essential facts"
+    ],
+    "definitions": [
+      "Term 1: Clear definition",
+      "Term 2: Simple explanation",
+      "Add 2-4 key definitions"
+    ],
+    "formulas": [
+      "Formula or process 1 if applicable",
+      "Key equation or method if relevant",
+      "Leave empty array if no formulas"
+    ]
+  },
+  
+  "learningPath": [
+    "Beginner: First topic to learn",
+    "Intermediate: Next level topic",
+    "Advanced: Deep dive topic",
+    "Related: Connected subject area",
+    "Add 3-5 progressive learning topics"
+  ],
+  
+  "commonPitfalls": [
+    {
+      "pitfall": "Common mistake 1 people make",
+      "solution": "How to avoid this mistake with specific advice"
+    },
+    {
+      "pitfall": "Typical error 2 beginners encounter",
+      "solution": "Practical solution to prevent this"
+    },
+    "Add 2-3 common pitfalls with solutions"
+  ],
+  
+  "glossary": [
+    {
+      "term": "Technical term 1",
+      "definition": "Simple, clear definition anyone can understand"
+    },
+    {
+      "term": "Key concept 2",
+      "definition": "Easy explanation with context"
+    },
+    "Add 3-7 important terms from the content"
+  ],
+  
+  "interactivePromptSuggestions": [
+    "Prompt 1: Specific question users can ask AI to learn more",
+    "Prompt 2: Another useful prompt for deeper exploration",
+    "Prompt 3: Creative prompt for practical application",
+    "Add 2-3 AI prompts users can use"
+  ],
+  
+  "tags": [
+    "keyword1",
+    "keyword2",
+    "keyword3",
+    "Add 5-10 relevant lowercase keywords"
+  ],
+  
+  "folder": "Single category name (e.g., 'Education', 'Technology', 'Health', 'Business', 'Lifestyle')"
 }
 
-Rules:
-- Return ONLY valid JSON, no markdown, no explanations
-- Summary must be 3-5 sentences
-- Tags must be 3-7 lowercase keywords
-- Folder must be a single short category name
-- All fields are required
+CRITICAL RULES:
+- Write in simple, clear English that anyone can understand
+- Make all content actionable and practical
+- Ensure quiz questions test real understanding, not just recall
+- Quick reference should be genuinely useful for quick lookup
+- Learning path should be progressive (beginner to advanced)
+- Pitfalls should be realistic and solutions specific
+- Glossary should define terms in simple language
+- AI prompts should be specific and useful
+- Return ONLY valid JSON, no markdown, no extra text
+- All text fields must be in English (translate if needed)
+- ALL fields are required - do not omit any
+- Be comprehensive but concise
+- Focus on educational value and practical application
 
-Transcript:
+Transcript to analyze:
 ${processedTranscript}`;
 
     console.log(`[AI Summary] Sending request to Groq...`);
@@ -145,7 +353,7 @@ ${processedTranscript}`;
       ],
       model: modelName,
       temperature: 0.7,
-      max_tokens: 1024,
+      max_tokens: 8000, // Increased for comprehensive response
       response_format: { type: "json_object" },
     });
 
@@ -168,11 +376,30 @@ ${processedTranscript}`;
 
     console.log(`[AI Summary] Summarization complete`);
     console.log(`[AI Summary] Summary: ${parsed.summary.substring(0, 100)}...`);
+    console.log(`[AI Summary] Key Points: ${parsed.keyPoints.length}`);
+    console.log(`[AI Summary] Examples: ${parsed.examples.length}`);
+    console.log(
+      `[AI Summary] Checklist Items: ${parsed.actionableChecklist.length}`
+    );
+    console.log(`[AI Summary] Quiz Questions: ${parsed.quizQuestions.length}`);
+    console.log(`[AI Summary] Learning Path: ${parsed.learningPath.length}`);
+    console.log(`[AI Summary] Glossary Terms: ${parsed.glossary.length}`);
     console.log(`[AI Summary] Tags: ${normalizedTags.join(", ")}`);
     console.log(`[AI Summary] Folder: ${parsed.folder}`);
 
     return {
       summary: parsed.summary,
+      detailedExplanation: parsed.detailedExplanation,
+      keyPoints: parsed.keyPoints,
+      examples: parsed.examples,
+      relatedTopics: parsed.relatedTopics,
+      actionableChecklist: parsed.actionableChecklist,
+      quizQuestions: parsed.quizQuestions,
+      quickReferenceCard: parsed.quickReferenceCard,
+      learningPath: parsed.learningPath,
+      commonPitfalls: parsed.commonPitfalls,
+      glossary: parsed.glossary,
+      interactivePromptSuggestions: parsed.interactivePromptSuggestions,
       tags: normalizedTags,
       suggestedFolder: parsed.folder,
       rawResponse: chatCompletion,
