@@ -38,7 +38,11 @@ export interface Reel {
   ocrText: string;
   tags: string[];
   folder: string | null;
+  folderId: string | null;
   thumbnail: string;
+  thumbnailUrl?: string;
+  creatorHandle?: string;
+  status?: "processing" | "completed" | "error";
   metadata: Record<string, any>;
   timings: Record<string, any>;
   actionableChecklist: string[];
@@ -52,7 +56,7 @@ export interface Reel {
   examples: string[];
   relatedTopics: string[];
   detailedExplanation: string;
-  createdAt?: string;
+  createdAt?: string | Date;
   updatedAt?: string;
 }
 
@@ -61,6 +65,7 @@ export interface Folder {
   name: string;
   color: string;
   reelCount: number;
+  isDefault?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

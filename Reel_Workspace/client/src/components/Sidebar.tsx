@@ -1,160 +1,245 @@
-import { Folder, Reel } from "@/types/reel";
 import { cn } from "@/lib/utils";
-import { FileText, FolderPlus, Inbox, Archive, ChevronDown } from "lucide-react";
+import {
+  FileText,
+  FolderPlus,
+  Inbox,
+  ChevronDown,
+  MoreVertical,
+  Edit2,
+  Trash2,
+  LogOut,
+} from "lucide-react";
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useFolders } from "@/hooks/useFolders";
+import { CreateFolderModal } from "@/components/modals/CreateFolderModal";
+import { RenameFolderModal } from "@/components/modals/RenameFolderModal";
+import { DeleteFolderDialog } from "@/components/modals/DeleteFolderDialog";
+import { Folder } from "@/lib/types";
+import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface SidebarProps {
-  folders: Folder[];
-  reels: Reel[];
   selectedFolderId: string | null;
   onSelectFolder: (folderId: string | null) => void;
-  onCreateFolder: (name: string, emoji: string) => void;
+  totalReels: number;
+  uncategorizedCount: number;
 }
 
 export function Sidebar({
-  folders,
-  reels,
   selectedFolderId,
   onSelectFolder,
-  onCreateFolder,
+  totalReels,
+  uncategorizedCount,
 }: SidebarProps) {
-  const [isCreating, setIsCreating] = useState(false);
-  const [newFolderName, setNewFolderName] = useState("");
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+  const { data: folders = [], isLoading, error } = useFolders();
+
+  console.log("🎨 Sidebar - Folders:", folders);
+  console.log("🎨 Sidebar - Loading:", isLoading);
+  console.log("🎨 Sidebar - Error:", error);
+
   const [isFoldersExpanded, setIsFoldersExpanded] = useState(true);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
 
-  const uncategorizedCount = reels.filter(r => !r.folderId).length;
-
-  const handleCreate = () => {
-    if (newFolderName.trim()) {
-      onCreateFolder(newFolderName.trim(), "📁");
-      setNewFolderName("");
-      setIsCreating(false);
-    }
+  const handleRename = (folder: Folder) => {
+    setSelectedFolder(folder);
+    setIsRenameModalOpen(true);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleCreate();
-    } else if (e.key === "Escape") {
-      setIsCreating(false);
-      setNewFolderName("");
-    }
+  const handleDelete = (folder: Folder) => {
+    setSelectedFolder(folder);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleLogout = () => {
+    logout();
+    toast.success("Signed out successfully");
+    navigate("/login");
   };
 
   return (
-    <aside className="w-60 h-screen bg-card border-r border-border flex flex-col fixed left-0 top-0">
-      {/* Logo */}
-      <div className="p-4 border-b border-border">
-        <h1 className="text-lg font-semibold text-foreground">ReelMind</h1>
-        <p className="text-xs text-muted-foreground">Knowledge Workspace</p>
-      </div>
+    <>
+      <aside className="w-60 h-screen bg-card border-r border-border flex flex-col fixed left-0 top-0">
+        {/* Logo */}
+        <div className="p-4 border-b border-border">
+          <h1 className="text-lg font-semibold text-foreground">ReelMind</h1>
+          <p className="text-xs text-muted-foreground">Knowledge Workspace</p>
+        </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-auto p-2 space-y-1">
-        {/* All Reels */}
-        <button
-          onClick={() => onSelectFolder(null)}
-          className={cn(
-            "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
-            selectedFolderId === null
-              ? "bg-secondary text-foreground font-medium"
-              : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-          )}
-        >
-          <FileText className="w-4 h-4" />
-          <span className="flex-1 text-left">All Reels</span>
-          <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-            {reels.length}
-          </span>
-        </button>
-
-        {/* Uncategorized */}
-        <button
-          onClick={() => onSelectFolder("uncategorized")}
-          className={cn(
-            "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
-            selectedFolderId === "uncategorized"
-              ? "bg-secondary text-foreground font-medium"
-              : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-          )}
-        >
-          <Inbox className="w-4 h-4" />
-          <span className="flex-1 text-left">Uncategorized</span>
-          <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-            {uncategorizedCount}
-          </span>
-        </button>
-
-        {/* Folders Section */}
-        <div className="pt-4">
+        {/* Navigation */}
+        <nav className="flex-1 overflow-auto p-2 space-y-1">
+          {/* All Reels */}
           <button
-            onClick={() => setIsFoldersExpanded(!isFoldersExpanded)}
-            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide hover:text-foreground transition-colors"
+            onClick={() => onSelectFolder(null)}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+              selectedFolderId === null
+                ? "bg-secondary text-foreground font-medium"
+                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+            )}
           >
-            <ChevronDown
-              className={cn(
-                "w-3 h-3 transition-transform",
-                !isFoldersExpanded && "-rotate-90"
-              )}
-            />
-            Folders
+            <FileText className="w-4 h-4" />
+            <span className="flex-1 text-left">All Reels</span>
+            <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+              {totalReels}
+            </span>
           </button>
 
-          {isFoldersExpanded && (
-            <div className="mt-1 space-y-1">
-              {folders.map((folder) => (
-                <button
-                  key={folder.id}
-                  onClick={() => onSelectFolder(folder.id)}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
-                    selectedFolderId === folder.id
-                      ? "bg-secondary text-foreground font-medium"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  )}
-                >
-                  <Archive className="w-4 h-4" />
-                  <span className="flex-1 text-left truncate">{folder.name}</span>
-                  <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                    {folder.reelCount}
-                  </span>
-                </button>
-              ))}
+          {/* Uncategorized */}
+          <button
+            onClick={() => onSelectFolder("uncategorized")}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+              selectedFolderId === "uncategorized"
+                ? "bg-secondary text-foreground font-medium"
+                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+            )}
+          >
+            <Inbox className="w-4 h-4" />
+            <span className="flex-1 text-left">Uncategorized</span>
+            <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+              {uncategorizedCount}
+            </span>
+          </button>
 
-              {/* Create New Folder */}
-              {isCreating ? (
-                <div className="px-3 py-2">
-                  <Input
-                    value={newFolderName}
-                    onChange={(e) => setNewFolderName(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Folder name..."
-                    className="h-8 text-sm"
-                    autoFocus
-                  />
-                </div>
-              ) : (
+          {/* Folders Section */}
+          <div className="pt-4">
+            <button
+              onClick={() => setIsFoldersExpanded(!isFoldersExpanded)}
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide hover:text-foreground transition-colors"
+            >
+              <ChevronDown
+                className={cn(
+                  "w-3 h-3 transition-transform",
+                  !isFoldersExpanded && "-rotate-90"
+                )}
+              />
+              Folders
+            </button>
+
+            {isFoldersExpanded && (
+              <div className="mt-1 space-y-1">
+                {isLoading ? (
+                  <div className="px-3 py-2 text-sm text-muted-foreground">
+                    Loading...
+                  </div>
+                ) : folders.length === 0 ? (
+                  <div className="px-3 py-2 text-sm text-muted-foreground">
+                    No folders yet
+                  </div>
+                ) : (
+                  folders.map((folder) => (
+                    <div
+                      key={folder.id}
+                      className={cn(
+                        "group flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
+                        selectedFolderId === folder.id
+                          ? "bg-secondary text-foreground font-medium"
+                          : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      )}
+                    >
+                      <button
+                        onClick={() => onSelectFolder(folder.id)}
+                        className="flex items-center gap-3 flex-1 min-w-0"
+                      >
+                        <div
+                          className="w-3 h-3 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: folder.color }}
+                        />
+                        <span className="flex-1 text-left truncate">
+                          {folder.name}
+                        </span>
+                        <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded flex-shrink-0">
+                          {folder.reelCount}
+                        </span>
+                      </button>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="w-3 h-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => handleRename(folder)}
+                          >
+                            <Edit2 className="w-4 h-4 mr-2" />
+                            Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(folder)}
+                            className="text-destructive focus:text-destructive"
+                            disabled={folder.isDefault}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  ))
+                )}
+
+                {/* Create New Folder Button */}
                 <button
-                  onClick={() => setIsCreating(true)}
+                  onClick={() => setIsCreateModalOpen(true)}
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
                 >
                   <FolderPlus className="w-4 h-4" />
                   <span>New Folder</span>
                 </button>
-              )}
-            </div>
-          )}
-        </div>
-      </nav>
+              </div>
+            )}
+          </div>
+        </nav>
 
-      {/* Footer */}
-      <div className="p-3 border-t border-border">
-        <p className="text-xs text-muted-foreground text-center">
-          Research Tool
-        </p>
-      </div>
-    </aside>
+        {/* Footer - User Profile & Logout */}
+        <div className="p-3 border-t border-border">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLogout}
+            className="w-full justify-start text-muted-foreground hover:text-foreground"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign Out
+          </Button>
+        </div>
+      </aside>
+
+      {/* Modals */}
+      <CreateFolderModal
+        open={isCreateModalOpen}
+        onOpenChange={setIsCreateModalOpen}
+      />
+      <RenameFolderModal
+        open={isRenameModalOpen}
+        onOpenChange={setIsRenameModalOpen}
+        folder={selectedFolder}
+      />
+      <DeleteFolderDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        folder={selectedFolder}
+      />
+    </>
   );
 }

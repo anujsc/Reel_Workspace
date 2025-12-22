@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useReels } from "../hooks/useReels";
-import { Folder } from "@/types/reel";
 import { PasteLinkCard } from "@/components/PasteLinkCard";
 import { ReelCard } from "@/components/ReelCard";
 import { ReelCardSkeleton } from "@/components/ReelCardSkeleton";
@@ -13,21 +12,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-
-const MOCK_FOLDERS: Folder[] = [
-  { id: "f1", name: "Finance Tips", emoji: "💰", reelCount: 5 },
-  { id: "f2", name: "Coding Tutorials", emoji: "💻", reelCount: 3 },
-];
+import { useFolders } from "@/hooks/useFolders";
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // Fetch reels from backend API
-  const { data, isLoading, error, refetch } = useReels({ limit: 20, skip: 0 });
+  // Get folder from URL params
+  const folderParam = searchParams.get("folder");
+  const selectedFolderId = folderParam || null;
 
-  const [folders, setFolders] = useState<Folder[]>(MOCK_FOLDERS);
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  console.log("📊 Dashboard - Selected Folder ID:", selectedFolderId);
+
+  // Fetch reels from backend API with folder filter
+  const { data, isLoading, error, refetch } = useReels({
+    limit: 20,
+    skip: 0,
+    folder: folderParam || undefined,
+  });
+
+  const { data: folders = [] } = useFolders();
+
   const [selectedReelId, setSelectedReelId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -43,25 +49,20 @@ export default function Dashboard() {
     navigate("/login");
   };
 
-  const handleCreateFolder = (name: string, emoji: string) => {
-    const newFolder: Folder = {
-      id: Date.now().toString(),
-      name,
-      emoji,
-      reelCount: 0,
-    };
-    setFolders((prev) => [...prev, newFolder]);
+  const handleSelectFolder = (folderId: string | null) => {
+    if (folderId === null) {
+      setSearchParams({});
+    } else {
+      setSearchParams({ folder: folderId });
+    }
   };
 
-  // Filter reels based on folder and search
-  const filteredReels = reels.filter((reel) => {
-    // Folder filter
-    if (selectedFolderId === "uncategorized") {
-      if (reel.folder) return false;
-    } else if (selectedFolderId && selectedFolderId !== "uncategorized") {
-      if (reel.folder !== selectedFolderId) return false;
-    }
+  // Calculate counts
+  const totalReels = data?.total || 0;
+  const uncategorizedCount = reels.filter((r) => !r.folder).length;
 
+  // Filter reels based on search
+  const filteredReels = reels.filter((reel) => {
     // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -95,11 +96,10 @@ export default function Dashboard() {
       {/* Desktop Sidebar */}
       <div className="hidden lg:block">
         <Sidebar
-          folders={folders}
-          reels={reels}
           selectedFolderId={selectedFolderId}
-          onSelectFolder={setSelectedFolderId}
-          onCreateFolder={handleCreateFolder}
+          onSelectFolder={handleSelectFolder}
+          totalReels={totalReels}
+          uncategorizedCount={uncategorizedCount}
         />
       </div>
 
@@ -112,14 +112,13 @@ export default function Dashboard() {
           />
           <div className="absolute left-0 top-0 h-full w-60 animate-slide-up">
             <Sidebar
-              folders={folders}
-              reels={reels}
               selectedFolderId={selectedFolderId}
               onSelectFolder={(id) => {
-                setSelectedFolderId(id);
+                handleSelectFolder(id);
                 setIsMobileSidebarOpen(false);
               }}
-              onCreateFolder={handleCreateFolder}
+              totalReels={totalReels}
+              uncategorizedCount={uncategorizedCount}
             />
           </div>
           <Button

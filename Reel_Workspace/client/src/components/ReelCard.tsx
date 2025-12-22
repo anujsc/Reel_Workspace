@@ -17,17 +17,18 @@ export function ReelCard({ reel }: ReelCardProps) {
   return (
     <button
       onClick={handleClick}
-      className="calm-card w-full text-left transition-all duration-200 hover:scale-[1.02] hover:shadow-lg active:scale-[0.99]"
+      className="group calm-card w-full text-left transition-all duration-200 hover:scale-[1.02] hover:shadow-lg active:scale-[0.99]"
     >
-      {/* Thumbnail */}
-      <div className="relative aspect-[9/16] w-full rounded-lg overflow-hidden mb-3 bg-muted">
+      {/* Thumbnail (Square) */}
+      <div className="relative w-full aspect-square rounded-lg overflow-hidden mb-3 bg-muted">
         <img
           src={
             reel.thumbnail ||
-            "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=711&fit=crop"
+            "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=400&fit=crop"
           }
           alt={reel.title}
-          className="w-full h-full object-cover"
+          loading="lazy"
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
       </div>
 
@@ -51,6 +52,7 @@ export function ReelCard({ reel }: ReelCardProps) {
             #{tag}
           </span>
         ))}
+
         {reel.tags.length > 3 && (
           <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600">
             +{reel.tags.length - 3}
@@ -58,7 +60,7 @@ export function ReelCard({ reel }: ReelCardProps) {
         )}
       </div>
 
-      {/* Footer: Folder and Date */}
+      {/* Footer */}
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         {reel.folder && (
           <div className="flex items-center gap-1">
@@ -66,9 +68,12 @@ export function ReelCard({ reel }: ReelCardProps) {
             <span>{reel.folder}</span>
           </div>
         )}
+
         {reel.createdAt && (
           <span>
-            {formatDistanceToNow(new Date(reel.createdAt), { addSuffix: true })}
+            {formatDistanceToNow(new Date(reel.createdAt), {
+              addSuffix: true,
+            })}
           </span>
         )}
       </div>

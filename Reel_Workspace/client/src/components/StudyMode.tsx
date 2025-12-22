@@ -1,7 +1,15 @@
 import { useState } from "react";
-import { Reel, Folder } from "@/types/reel";
+import { Reel } from "@/lib/types";
+import { Folder } from "@/types/reel";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ExternalLink, Search, Copy, Check, ChevronDown } from "lucide-react";
+import {
+  ArrowLeft,
+  ExternalLink,
+  Search,
+  Copy,
+  Check,
+  ChevronDown,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -12,32 +20,45 @@ interface StudyModeProps {
   onUpdateReel?: (reel: Reel) => void;
 }
 
-type TabKey = 'summary' | 'transcript' | 'ocr';
+type TabKey = "summary" | "transcript" | "ocr";
 
-export function StudyMode({ reel, folders, onBack, onUpdateReel }: StudyModeProps) {
-  const [activeTab, setActiveTab] = useState<TabKey>('summary');
+export function StudyMode({
+  reel,
+  folders,
+  onBack,
+  onUpdateReel,
+}: StudyModeProps) {
+  const [activeTab, setActiveTab] = useState<TabKey>("summary");
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
   const [showFolderDropdown, setShowFolderDropdown] = useState(false);
 
   const tabs: { key: TabKey; label: string }[] = [
-    { key: 'summary', label: 'Summary' },
-    { key: 'transcript', label: 'Transcript' },
-    { key: 'ocr', label: 'Visual OCR' },
+    { key: "summary", label: "Summary" },
+    { key: "transcript", label: "Transcript" },
+    { key: "ocr", label: "Visual OCR" },
   ];
 
   const highlightText = (text: string, query: string) => {
     if (!query.trim()) return text;
-    
-    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+
+    const regex = new RegExp(
+      `(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`,
+      "gi"
+    );
     const parts = text.split(regex);
-    
-    return parts.map((part, i) => 
+
+    return parts.map((part, i) =>
       regex.test(part) ? (
-        <mark key={i} className="bg-foreground/20 text-foreground rounded px-0.5">
+        <mark
+          key={i}
+          className="bg-foreground/20 text-foreground rounded px-0.5"
+        >
           {part}
         </mark>
-      ) : part
+      ) : (
+        part
+      )
     );
   };
 
@@ -58,24 +79,29 @@ export function StudyMode({ reel, folders, onBack, onUpdateReel }: StudyModeProp
 
   const getContent = () => {
     switch (activeTab) {
-      case 'summary':
+      case "summary":
         return (
           <ul className="space-y-2">
-            {reel.summary.split('\n').filter(Boolean).map((point, i) => (
-              <li key={i} className="flex gap-2">
-                <span className="text-muted-foreground">•</span>
-                <span className="text-foreground">{highlightText(point.replace(/^[•-]\s*/, ''), searchQuery)}</span>
-              </li>
-            ))}
+            {reel.summary
+              .split("\n")
+              .filter(Boolean)
+              .map((point, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className="text-muted-foreground">•</span>
+                  <span className="text-foreground">
+                    {highlightText(point.replace(/^[•-]\s*/, ""), searchQuery)}
+                  </span>
+                </li>
+              ))}
           </ul>
         );
-      case 'transcript':
+      case "transcript":
         return (
           <p className="leading-relaxed text-foreground">
             {highlightText(reel.transcript, searchQuery)}
           </p>
         );
-      case 'ocr':
+      case "ocr":
         return reel.ocrText ? (
           <pre className="leading-relaxed font-mono text-sm text-foreground whitespace-pre-wrap">
             {highlightText(reel.ocrText, searchQuery)}
@@ -90,11 +116,11 @@ export function StudyMode({ reel, folders, onBack, onUpdateReel }: StudyModeProp
 
   const getCurrentText = () => {
     switch (activeTab) {
-      case 'summary':
+      case "summary":
         return reel.summary;
-      case 'transcript':
+      case "transcript":
         return reel.transcript;
-      case 'ocr':
+      case "ocr":
         return reel.ocrText;
     }
   };
@@ -107,7 +133,9 @@ export function StudyMode({ reel, folders, onBack, onUpdateReel }: StudyModeProp
           <Button variant="ghost" size="icon" onClick={onBack}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="font-semibold text-foreground truncate flex-1">Study Mode</h1>
+          <h1 className="font-semibold text-foreground truncate flex-1">
+            Study Mode
+          </h1>
         </div>
       </header>
 
@@ -136,7 +164,9 @@ export function StudyMode({ reel, folders, onBack, onUpdateReel }: StudyModeProp
           {/* Title & Creator */}
           <div>
             <h2 className="font-semibold text-foreground mb-1">{reel.title}</h2>
-            <p className="text-sm text-muted-foreground">@{reel.creatorHandle}</p>
+            <p className="text-sm text-muted-foreground">
+              @{reel.creatorHandle}
+            </p>
           </div>
 
           {/* Watch on Instagram Button */}

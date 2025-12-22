@@ -24,11 +24,16 @@ export const useReels = (params: UseReelsParams = {}) => {
         skip: skip.toString(),
       });
 
-      if (folder) {
-        queryParams.append("folder", folder);
+      // Add folder filter if provided (use 'folderId' as backend expects)
+      if (folder && folder !== "uncategorized") {
+        queryParams.append("folderId", folder);
       }
 
+      console.log("🎬 Fetching reels with params:", queryParams.toString());
+
       const response = await api.get(`/api/reel?${queryParams.toString()}`);
+      console.log("🎬 Reels API Response:", response.data);
+
       // Backend returns: { success, data: [reels array], meta: { total } }
       // Map backend fields to frontend types
       const reels = response.data.data.map((reel: any) => ({
@@ -40,6 +45,7 @@ export const useReels = (params: UseReelsParams = {}) => {
         ocrText: reel.ocrText,
         tags: reel.tags || [],
         folder: reel.folderId?.name || null,
+        folderId: reel.folderId?._id || null,
         thumbnail: reel.thumbnailUrl,
         metadata: reel.metadata || {},
         timings: reel.timings || {},
@@ -69,9 +75,21 @@ export const useReels = (params: UseReelsParams = {}) => {
         updatedAt: reel.updatedAt,
       }));
 
+      // Filter for uncategorized on frontend if needed
+      let filteredReels = reels;
+      if (folder === "uncategorized") {
+        filteredReels = reels.filter((reel: any) => !reel.folderId);
+        console.log("🎬 Filtered uncategorized reels:", filteredReels.length);
+      }
+
+      console.log("🎬 Total reels returned:", filteredReels.length);
+
       return {
-        reels,
-        total: response.data.meta?.total || 0,
+        reels: filteredReels,
+        total:
+          folder === "uncategorized"
+            ? filteredReels.length
+            : response.data.meta?.total || 0,
       };
     },
   });
