@@ -1,13 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useReels } from "../hooks/useReels";
+import { useDebounce } from "../hooks/useDebounce";
 import { PasteLinkCard } from "@/components/PasteLinkCard";
 import { ReelCard } from "@/components/ReelCard";
 import { ReelCardSkeleton } from "@/components/ReelCardSkeleton";
 import { Sidebar } from "@/components/Sidebar";
 import { StudyMode } from "@/components/StudyMode";
-import { Search, LogOut, Menu, X, AlertCircle, RefreshCw } from "lucide-react";
+import {
+  Search,
+  LogOut,
+  Menu,
+  X,
+  AlertCircle,
+  RefreshCw,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -37,6 +46,10 @@ export default function Dashboard() {
   const [selectedReelId, setSelectedReelId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Debounce search query
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
   const reels = data?.reels || [];
   const selectedReel = selectedReelId
@@ -56,6 +69,32 @@ export default function Dashboard() {
       setSearchParams({ folder: folderId });
     }
   };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    setIsSearching(true);
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
+  // Reset searching state when debounced query changes
+  useEffect(() => {
+    if (debouncedSearchQuery !== searchQuery) {
+      setIsSearching(false);
+    }
+  }, [debouncedSearchQuery, searchQuery]);
 
   // Calculate counts
   const totalReels = data?.total || 0;
@@ -148,15 +187,22 @@ export default function Dashboard() {
             </Button>
 
             {/* Search */}
-            <div className="flex-1 relative max-w-md">
+            <form
+              onSubmit={handleSearchSubmit}
+              className="flex-1 relative max-w-md"
+            >
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search reels..."
-                className="pl-10"
+                onChange={handleSearchChange}
+                onKeyDown={handleSearchKeyDown}
+                placeholder="Search reels... (Press Enter)"
+                className="pl-10 pr-10"
               />
-            </div>
+              {isSearching && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
+              )}
+            </form>
 
             {/* Logout */}
             <Button variant="ghost" size="icon" onClick={handleLogout}>

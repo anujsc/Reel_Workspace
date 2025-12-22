@@ -6,6 +6,7 @@ import PrivateRoute from "./components/PrivateRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
+import SearchResults from "./pages/SearchResults";
 import ReelDetail from "./pages/ReelDetail";
 import NotFound from "./pages/NotFound";
 
@@ -38,6 +39,14 @@ const App = () => (
           element={
             <PrivateRoute>
               <Dashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/search"
+          element={
+            <PrivateRoute>
+              <SearchResults />
             </PrivateRoute>
           }
         />

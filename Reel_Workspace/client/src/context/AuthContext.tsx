@@ -5,6 +5,7 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import api from "../services/api";
 import { User } from "../lib/types";
 
@@ -36,6 +37,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   const checkAuth = async () => {
     const storedToken = localStorage.getItem("authToken");
@@ -53,12 +55,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.removeItem("authToken");
       setToken(null);
       setUser(null);
+      // Clear cache on auth failure
+      queryClient.clear();
     } finally {
       setIsLoading(false);
     }
   };
 
   const login = async (email: string, password: string) => {
+    // Clear cache before login to remove previous user's data
+    queryClient.clear();
+
     const response = await api.post("/api/auth/login", { email, password });
     // Backend wraps response in { success, data: { user, token } }
     const { token: newToken, user: userData } = response.data.data;
@@ -66,9 +73,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.setItem("authToken", newToken);
     setToken(newToken);
     setUser(userData);
+
+    console.log("✅ Login successful - Cache cleared for new user");
   };
 
   const register = async (email: string, password: string) => {
+    // Clear cache before register to ensure clean state
+    queryClient.clear();
+
     const response = await api.post("/api/auth/register", { email, password });
     // Backend wraps response in { success, data: { user, token } }
     const { token: newToken, user: userData } = response.data.data;
@@ -76,12 +88,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.setItem("authToken", newToken);
     setToken(newToken);
     setUser(userData);
+
+    console.log("✅ Registration successful - Cache cleared for new user");
   };
 
   const logout = () => {
     localStorage.removeItem("authToken");
     setToken(null);
     setUser(null);
+
+    // Clear all React Query cache on logout
+    queryClient.clear();
+    console.log("✅ Logout successful - All cache cleared");
   };
 
   useEffect(() => {

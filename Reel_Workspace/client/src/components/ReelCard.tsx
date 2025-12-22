@@ -5,13 +5,37 @@ import { formatDistanceToNow } from "date-fns";
 
 interface ReelCardProps {
   reel: Reel;
+  highlightQuery?: string;
 }
 
-export function ReelCard({ reel }: ReelCardProps) {
+export function ReelCard({ reel, highlightQuery }: ReelCardProps) {
   const navigate = useNavigate();
 
   const handleClick = () => {
     navigate(`/reel/${reel.id}`);
+  };
+
+  // Highlight matching keywords in text
+  const highlightText = (text: string) => {
+    if (!highlightQuery || !text) return text;
+
+    const parts = text.split(new RegExp(`(${highlightQuery})`, "gi"));
+    return (
+      <>
+        {parts.map((part, index) =>
+          part.toLowerCase() === highlightQuery.toLowerCase() ? (
+            <mark
+              key={index}
+              className="bg-yellow-200 dark:bg-yellow-800 px-0.5"
+            >
+              {part}
+            </mark>
+          ) : (
+            part
+          )
+        )}
+      </>
+    );
   };
 
   return (
@@ -34,12 +58,12 @@ export function ReelCard({ reel }: ReelCardProps) {
 
       {/* Title */}
       <h3 className="font-semibold text-foreground mb-2 line-clamp-2">
-        {reel.title}
+        {highlightText(reel.title)}
       </h3>
 
       {/* Summary */}
       <p className="text-sm text-gray-600 mb-3 line-clamp-3 leading-relaxed">
-        {reel.summary}
+        {highlightText(reel.summary)}
       </p>
 
       {/* Tags */}
