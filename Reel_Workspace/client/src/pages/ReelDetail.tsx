@@ -1,19 +1,28 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Trash2, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useReel } from "../hooks/useReel";
 import { ReelSource } from "../components/ReelSource";
 import { ReelKnowledge } from "../components/ReelKnowledge";
+import { DeleteReelDialog } from "@/components/modals/DeleteReelDialog";
+import { EditReelTitleModal } from "@/components/modals/EditReelTitleModal";
+import { useState } from "react";
 
 export default function ReelDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: reel, isLoading, error } = useReel(id);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   console.log("ReelDetail - ID:", id);
   console.log("ReelDetail - Reel data:", reel);
   console.log("ReelDetail - Loading:", isLoading);
   console.log("ReelDetail - Error:", error);
+
+  const handleDeleteSuccess = () => {
+    navigate("/dashboard");
+  };
 
   if (isLoading) {
     return (
@@ -47,7 +56,7 @@ export default function ReelDetail() {
     <div className="min-h-screen bg-background">
       {/* Back Button */}
       <div className="border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-4">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-4 flex items-center justify-between">
           <Button
             variant="ghost"
             onClick={() => navigate("/dashboard")}
@@ -56,6 +65,28 @@ export default function ReelDetail() {
             <ArrowLeft className="w-4 h-4" />
             Back to Dashboard
           </Button>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditModalOpen(true)}
+              className="gap-2"
+            >
+              <Edit2 className="w-4 h-4" />
+              Edit Title
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setIsDeleteDialogOpen(true)}
+              className="gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -73,6 +104,21 @@ export default function ReelDetail() {
           </div>
         </div>
       </div>
+
+      {/* Delete Dialog */}
+      <DeleteReelDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        reel={reel}
+        onSuccess={handleDeleteSuccess}
+      />
+
+      {/* Edit Title Modal */}
+      <EditReelTitleModal
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        reel={reel}
+      />
     </div>
   );
 }

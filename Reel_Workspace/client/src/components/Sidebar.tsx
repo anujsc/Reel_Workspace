@@ -71,11 +71,15 @@ export function Sidebar({
 
   return (
     <>
-      <aside className="w-60 h-screen bg-card border-r border-border flex flex-col fixed left-0 top-0">
+      <aside className="w-60 h-screen flex flex-col fixed left-0 top-0 bg-[hsl(var(--sidebar-background))] border-r border-[hsl(var(--sidebar-border))] shadow-sm">
         {/* Logo */}
-        <div className="p-4 border-b border-border">
-          <h1 className="text-lg font-semibold text-foreground">ReelMind</h1>
-          <p className="text-xs text-muted-foreground">Knowledge Workspace</p>
+        <div className="p-6 border-b border-[hsl(var(--sidebar-border))]">
+          <h1 className="text-xl font-bold text-foreground tracking-tight">
+            ReelMind
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1 font-medium">
+            Knowledge OS
+          </p>
         </div>
 
         {/* Navigation */}

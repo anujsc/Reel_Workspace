@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../services/api";
-import { Reel } from "../lib/types";
 
 interface UpdateReelData {
   title?: string;
@@ -8,19 +7,24 @@ interface UpdateReelData {
   tags?: string[];
 }
 
-export const useUpdateReel = (reelId: string) => {
+export const useUpdateReel = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: UpdateReelData): Promise<Reel> => {
-      const response = await api.patch(`/api/reel/${reelId}`, data);
-      return response.data.data;
+    mutationFn: async ({ id, data }: { id: string; data: UpdateReelData }) => {
+      console.log("✏️ Updating reel:", id, data);
+      const response = await api.patch(`/api/reel/${id}`, data);
+      return response.data;
     },
     onSuccess: () => {
-      // Invalidate and refetch the reel query
-      queryClient.invalidateQueries({ queryKey: ["reel", reelId] });
-      // Also invalidate reels list
+      // Invalidate all reel-related queries to refresh the UI
       queryClient.invalidateQueries({ queryKey: ["reels"] });
+      queryClient.invalidateQueries({ queryKey: ["search"] });
+      queryClient.invalidateQueries({ queryKey: ["reel"] });
+      console.log("✅ Reel updated successfully - Cache invalidated");
+    },
+    onError: (error: any) => {
+      console.error("❌ Failed to update reel:", error);
     },
   });
 };
