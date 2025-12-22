@@ -1,27 +1,19 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import api from "../services/api";
-import { Reel } from "../lib/types";
+import { useReel } from "../hooks/useReel";
+import { ReelSource } from "../components/ReelSource";
+import { ReelKnowledge } from "../components/ReelKnowledge";
 
 export default function ReelDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { data: reel, isLoading, error } = useReel(id);
 
-  const {
-    data: reel,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["reel", id],
-    queryFn: async (): Promise<Reel> => {
-      const response = await api.get(`/api/reel/${id}`);
-      // Backend wraps response in { success, data: reel }
-      return response.data.data;
-    },
-    enabled: !!id,
-  });
+  console.log("ReelDetail - ID:", id);
+  console.log("ReelDetail - Reel data:", reel);
+  console.log("ReelDetail - Loading:", isLoading);
+  console.log("ReelDetail - Error:", error);
 
   if (isLoading) {
     return (
@@ -32,6 +24,7 @@ export default function ReelDetail() {
   }
 
   if (error || !reel) {
+    console.error("ReelDetail - Error or no reel:", error);
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="text-center">
@@ -48,67 +41,37 @@ export default function ReelDetail() {
     );
   }
 
+  console.log("ReelDetail - Rendering with reel:", reel.id, reel.title);
+
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto p-6">
-        {/* Header */}
-        <div className="mb-6">
+      {/* Back Button */}
+      <div className="border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-4">
           <Button
             variant="ghost"
             onClick={() => navigate("/dashboard")}
-            className="mb-4"
+            className="gap-2"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="w-4 h-4" />
             Back to Dashboard
           </Button>
-          <h1 className="text-3xl font-bold mb-2">{reel.title}</h1>
         </div>
+      </div>
 
-        {/* Thumbnail */}
-        {reel.thumbnail && (
-          <div className="aspect-video w-full rounded-lg overflow-hidden mb-6">
-            <img
-              src={reel.thumbnail}
-              alt={reel.title}
-              className="w-full h-full object-cover"
-            />
+      {/* Split Screen Layout */}
+      <div className="max-w-7xl mx-auto p-4 lg:p-6">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Left Column - Source Info (30% on desktop) */}
+          <div className="w-full lg:w-[30%]">
+            <ReelSource reel={reel} />
           </div>
-        )}
 
-        {/* Summary */}
-        <div className="calm-card mb-6">
-          <h2 className="text-xl font-semibold mb-3">Summary</h2>
-          <p className="text-muted-foreground whitespace-pre-wrap">
-            {reel.summary}
-          </p>
+          {/* Right Column - Knowledge Tabs (70% on desktop) */}
+          <div className="w-full lg:w-[70%]">
+            <ReelKnowledge reel={reel} />
+          </div>
         </div>
-
-        {/* Transcript */}
-        {reel.transcript && (
-          <div className="calm-card mb-6">
-            <h2 className="text-xl font-semibold mb-3">Transcript</h2>
-            <p className="text-muted-foreground whitespace-pre-wrap">
-              {reel.transcript}
-            </p>
-          </div>
-        )}
-
-        {/* Tags */}
-        {reel.tags.length > 0 && (
-          <div className="calm-card">
-            <h2 className="text-xl font-semibold mb-3">Tags</h2>
-            <div className="flex flex-wrap gap-2">
-              {reel.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="px-3 py-1 text-sm rounded-full bg-blue-100 text-blue-700"
-                >
-                  #{tag}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

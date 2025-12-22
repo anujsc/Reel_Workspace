@@ -2,37 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import api from "../services/api";
 import { Reel } from "../lib/types";
 
-interface UseReelsResponse {
-  reels: Reel[];
-  total: number;
-}
-
-interface UseReelsParams {
-  limit?: number;
-  skip?: number;
-  folder?: string;
-}
-
-export const useReels = (params: UseReelsParams = {}) => {
-  const { limit = 20, skip = 0, folder } = params;
-
+export const useReel = (id: string | undefined) => {
   return useQuery({
-    queryKey: ["reels", limit, skip, folder],
-    queryFn: async (): Promise<UseReelsResponse> => {
-      const queryParams = new URLSearchParams({
-        limit: limit.toString(),
-        skip: skip.toString(),
-      });
-
-      if (folder) {
-        queryParams.append("folder", folder);
-      }
-
-      const response = await api.get(`/api/reel?${queryParams.toString()}`);
-      // Backend returns: { success, data: [reels array], meta: { total } }
+    queryKey: ["reel", id],
+    queryFn: async (): Promise<Reel> => {
+      const response = await api.get(`/api/reel/${id}`);
+      const reel = response.data.data;
       // Map backend fields to frontend types
-      const reels = response.data.data.map((reel: any) => ({
-        id: reel._id,
+      return {
+        id: reel.id || reel._id,
         url: reel.sourceUrl,
         title: reel.title,
         summary: reel.summary,
@@ -58,8 +36,16 @@ export const useReels = (params: UseReelsParams = {}) => {
             }))
           : [],
         learningPath: reel.learningPath || [],
-        commonPitfalls: reel.commonPitfalls || [],
-        glossary: reel.glossary || [],
+        commonPitfalls: (reel.commonPitfalls || []).map((p: any) => ({
+          pitfall: p.pitfall,
+          solution: p.solution,
+          severity: p.severity,
+        })),
+        glossary: (reel.glossary || []).map((g: any) => ({
+          term: g.term,
+          definition: g.definition,
+          relatedTerms: g.relatedTerms,
+        })),
         interactivePromptSuggestions: reel.interactivePromptSuggestions || [],
         keyPoints: reel.keyPoints || [],
         examples: reel.examples || [],
@@ -67,12 +53,8 @@ export const useReels = (params: UseReelsParams = {}) => {
         detailedExplanation: reel.detailedExplanation || "",
         createdAt: reel.createdAt,
         updatedAt: reel.updatedAt,
-      }));
-
-      return {
-        reels,
-        total: response.data.meta?.total || 0,
       };
     },
+    enabled: !!id,
   });
 };
