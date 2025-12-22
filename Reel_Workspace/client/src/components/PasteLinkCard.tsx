@@ -3,21 +3,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, Zap } from "lucide-react";
 import { ProcessingSkeleton } from "./Skeleton";
-import { ProcessingStep } from "@/types/reel";
+import { useExtractReel } from "../hooks/useExtractReel";
+import { validateInstagramUrl } from "../utils/validators";
+import { toast } from "sonner";
 
-interface PasteLinkCardProps {
-  onExtract: (url: string) => void;
-  processingStep: ProcessingStep;
-}
-
-export function PasteLinkCard({ onExtract, processingStep }: PasteLinkCardProps) {
+export function PasteLinkCard() {
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
+  const [processingStep, setProcessingStep] = useState<string>("idle");
 
-  const validateInstagramUrl = (url: string): boolean => {
-    const regex = /^https?:\/\/(www\.)?instagram\.com\/(reel|p)\/[\w-]+/;
-    return regex.test(url);
-  };
+  const { mutate: extractReel, isPending } = useExtractReel();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,10 +28,59 @@ export function PasteLinkCard({ onExtract, processingStep }: PasteLinkCardProps)
       return;
     }
 
-    onExtract(url);
+    // Simulate processing steps for better UX
+    const steps = ["downloading", "transcribing", "summarizing", "extracting"];
+    let currentStep = 0;
+
+    setProcessingStep(steps[0]);
+
+    const stepInterval = setInterval(() => {
+      currentStep++;
+      if (currentStep < steps.length) {
+        setProcessingStep(steps[currentStep]);
+      } else {
+        clearInterval(stepInterval);
+      }
+    }, 2000); // Change step every 2 seconds
+
+    extractReel(url, {
+      onSuccess: () => {
+        clearInterval(stepInterval);
+        setProcessingStep("completed");
+        toast.success("Reel added successfully!");
+        setUrl("");
+        setTimeout(() => setProcessingStep("idle"), 500);
+      },
+      onError: (error: any) => {
+        clearInterval(stepInterval);
+        setProcessingStep("error");
+
+        // Handle different error types
+        const errorMessage = error?.response?.data?.message || error?.message;
+
+        if (
+          error?.response?.status === 409 ||
+          errorMessage?.toLowerCase().includes("already exists")
+        ) {
+          setError("This reel already exists in your collection");
+          toast.error("This reel already exists");
+        } else if (error?.response?.status === 400) {
+          setError(errorMessage || "Invalid URL or request");
+          toast.error(errorMessage || "Invalid request");
+        } else {
+          setError(errorMessage || "Failed to extract reel. Please try again.");
+          toast.error("Failed to extract reel");
+        }
+
+        setTimeout(() => setProcessingStep("idle"), 500);
+      },
+    });
   };
 
-  const isProcessing = processingStep !== 'idle' && processingStep !== 'completed' && processingStep !== 'error';
+  const isProcessing =
+    processingStep !== "idle" &&
+    processingStep !== "completed" &&
+    processingStep !== "error";
 
   if (isProcessing) {
     return <ProcessingSkeleton step={processingStep} />;
@@ -49,8 +93,12 @@ export function PasteLinkCard({ onExtract, processingStep }: PasteLinkCardProps)
           <Link className="w-5 h-5 text-foreground" />
         </div>
         <div>
-          <h2 className="font-semibold text-foreground">Paste Instagram Link</h2>
-          <p className="text-sm text-muted-foreground">Extract knowledge from any reel</p>
+          <h2 className="font-semibold text-foreground">
+            Paste Instagram Link
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Extract knowledge from any reel
+          </p>
         </div>
       </div>
 
@@ -64,11 +112,12 @@ export function PasteLinkCard({ onExtract, processingStep }: PasteLinkCardProps)
             }}
             placeholder="https://instagram.com/reel/..."
             className="pr-4"
+            disabled={isPending}
           />
         </div>
-        <Button type="submit" disabled={isProcessing}>
+        <Button type="submit" disabled={isPending || !url.trim()}>
           <Zap className="w-4 h-4 mr-2" />
-          Process with AI
+          Analyze with AI
         </Button>
       </div>
 

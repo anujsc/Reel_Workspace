@@ -1,102 +1,46 @@
 import { useState } from "react";
-import { Reel, Folder, ProcessingStep } from "@/types/reel";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { useReels } from "../hooks/useReels";
+import { Folder } from "@/types/reel";
 import { PasteLinkCard } from "@/components/PasteLinkCard";
 import { ReelCard } from "@/components/ReelCard";
+import { ReelCardSkeleton } from "@/components/ReelCardSkeleton";
 import { Sidebar } from "@/components/Sidebar";
 import { StudyMode } from "@/components/StudyMode";
-import { Search, LogOut, Menu, X } from "lucide-react";
+import { Search, LogOut, Menu, X, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-
-// Mock data for demonstration
-const MOCK_REELS: Reel[] = [
-  {
-    id: '1',
-    url: 'https://instagram.com/reel/abc123',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&h=300&fit=crop',
-    title: '5 Investment Strategies for 2024',
-    summary: '• Dollar-cost averaging reduces timing risk\n• Index funds outperform 90% of active managers\n• Emergency fund should cover 6 months\n• Diversification across asset classes is key',
-    transcript: 'Today I want to share five investment strategies that have changed my financial life. First, dollar-cost averaging - instead of trying to time the market, invest a fixed amount regularly...',
-    ocrText: 'S&P 500 Returns: +26.3%\nBonds: +5.1%\nReal Estate: +8.7%',
-    creatorHandle: 'financecoach',
-    tags: ['finance', 'investing', 'money'],
-    createdAt: new Date(),
-    status: 'completed',
-  },
-  {
-    id: '2',
-    url: 'https://instagram.com/reel/def456',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&h=300&fit=crop',
-    title: 'React Hooks You Need to Know',
-    summary: '• useState for component state\n• useEffect for side effects\n• useMemo for expensive calculations\n• useCallback for stable function references',
-    transcript: 'Let me show you the four most important React hooks that every developer needs to master. Starting with useState, which lets you add state to functional components...',
-    ocrText: 'const [count, setCount] = useState(0);\nuseEffect(() => { ... }, [deps]);',
-    creatorHandle: 'codewithjohn',
-    tags: ['coding', 'react', 'webdev'],
-    createdAt: new Date(),
-    status: 'completed',
-  },
-  {
-    id: '3',
-    url: 'https://instagram.com/reel/ghi789',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&h=300&fit=crop',
-    title: 'Morning Routine for Productivity',
-    summary: '• Wake up at 5 AM consistently\n• 20 minutes of meditation\n• Cold shower for energy\n• Plan top 3 priorities before checking phone',
-    transcript: 'Your morning sets the tone for your entire day. I wake up at 5 AM every single day, even on weekends. The first thing I do is meditate for 20 minutes...',
-    ocrText: '',
-    creatorHandle: 'productivityhub',
-    tags: ['productivity', 'habits', 'morning'],
-    createdAt: new Date(),
-    status: 'completed',
-  },
-];
+import { toast } from "sonner";
 
 const MOCK_FOLDERS: Folder[] = [
-  { id: 'f1', name: 'Finance Tips', emoji: '💰', reelCount: 5 },
-  { id: 'f2', name: 'Coding Tutorials', emoji: '💻', reelCount: 3 },
+  { id: "f1", name: "Finance Tips", emoji: "💰", reelCount: 5 },
+  { id: "f2", name: "Coding Tutorials", emoji: "💻", reelCount: 3 },
 ];
 
-interface DashboardProps {
-  onLogout: () => void;
-}
+export default function Dashboard() {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
 
-export function Dashboard({ onLogout }: DashboardProps) {
-  const [reels, setReels] = useState<Reel[]>(MOCK_REELS);
+  // Fetch reels from backend API
+  const { data, isLoading, error, refetch } = useReels({ limit: 20, skip: 0 });
+
   const [folders, setFolders] = useState<Folder[]>(MOCK_FOLDERS);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
-  const [processingStep, setProcessingStep] = useState<ProcessingStep>('idle');
-  const [selectedReel, setSelectedReel] = useState<Reel | null>(null);
+  const [selectedReelId, setSelectedReelId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  const handleExtract = async (url: string) => {
-    // Simulate AI pipeline
-    const steps: ProcessingStep[] = ['downloading', 'transcribing', 'summarizing', 'extracting'];
-    
-    for (const step of steps) {
-      setProcessingStep(step);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-    }
+  const reels = data?.reels || [];
+  const selectedReel = selectedReelId
+    ? reels.find((r) => r.id === selectedReelId)
+    : null;
 
-    // Add new mock reel
-    const newReel: Reel = {
-      id: Date.now().toString(),
-      url,
-      thumbnailUrl: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=400&h=300&fit=crop',
-      title: 'Newly Extracted Reel',
-      summary: '• Key insight from the reel\n• Another important point\n• Actionable takeaway',
-      transcript: 'This is the transcribed content from the Instagram reel...',
-      ocrText: 'Any text visible in the video frames',
-      creatorHandle: 'creator',
-      tags: ['new', 'learning'],
-      createdAt: new Date(),
-      status: 'completed',
-    };
-
-    setReels((prev) => [newReel, ...prev]);
-    setProcessingStep('completed');
-    setTimeout(() => setProcessingStep('idle'), 500);
+  const handleLogout = () => {
+    logout();
+    toast.success("Signed out successfully");
+    navigate("/login");
   };
 
   const handleCreateFolder = (name: string, emoji: string) => {
@@ -113,9 +57,9 @@ export function Dashboard({ onLogout }: DashboardProps) {
   const filteredReels = reels.filter((reel) => {
     // Folder filter
     if (selectedFolderId === "uncategorized") {
-      if (reel.folderId) return false;
+      if (reel.folder) return false;
     } else if (selectedFolderId && selectedFolderId !== "uncategorized") {
-      if (reel.folderId !== selectedFolderId) return false;
+      if (reel.folder !== selectedFolderId) return false;
     }
 
     // Search filter
@@ -137,11 +81,10 @@ export function Dashboard({ onLogout }: DashboardProps) {
       <StudyMode
         reel={selectedReel}
         folders={folders}
-        onBack={() => setSelectedReel(null)}
+        onBack={() => setSelectedReelId(null)}
         onUpdateReel={(updatedReel) => {
-          setReels((prev) =>
-            prev.map((r) => (r.id === updatedReel.id ? updatedReel : r))
-          );
+          // Refetch to get updated data
+          refetch();
         }}
       />
     );
@@ -217,7 +160,7 @@ export function Dashboard({ onLogout }: DashboardProps) {
             </div>
 
             {/* Logout */}
-            <Button variant="ghost" size="icon" onClick={onLogout}>
+            <Button variant="ghost" size="icon" onClick={handleLogout}>
               <LogOut className="w-4 h-4" />
             </Button>
           </div>
@@ -226,7 +169,7 @@ export function Dashboard({ onLogout }: DashboardProps) {
         {/* Dashboard Content */}
         <div className="p-4 lg:p-6 max-w-5xl mx-auto space-y-6">
           {/* Paste Link Card */}
-          <PasteLinkCard onExtract={handleExtract} processingStep={processingStep} />
+          <PasteLinkCard />
 
           {/* Folder Header */}
           <div className="flex items-center justify-between">
@@ -235,23 +178,69 @@ export function Dashboard({ onLogout }: DashboardProps) {
                 ? "All Reels"
                 : selectedFolderId === "uncategorized"
                 ? "Uncategorized"
-                : folders.find((f) => f.id === selectedFolderId)?.name || "Folder"}
+                : folders.find((f) => f.id === selectedFolderId)?.name ||
+                  "Folder"}
             </h2>
             <span className="text-sm text-muted-foreground">
-              {filteredReels.length} {filteredReels.length === 1 ? "reel" : "reels"}
+              {filteredReels.length}{" "}
+              {filteredReels.length === 1 ? "reel" : "reels"}
             </span>
           </div>
 
           {/* Reel Grid (Bento Style) */}
-          {filteredReels.length === 0 ? (
+          {isLoading ? (
+            // Loading state with skeleton loaders
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <ReelCardSkeleton key={index} />
+              ))}
+            </div>
+          ) : error ? (
+            // Error state
             <div className="calm-card text-center py-12">
+              <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">
+                Failed to load reels
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                {error instanceof Error
+                  ? error.message
+                  : "Something went wrong"}
+              </p>
+              <Button onClick={() => refetch()} variant="outline">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Try Again
+              </Button>
+            </div>
+          ) : filteredReels.length === 0 ? (
+            // Empty state
+            <div className="calm-card text-center py-12">
+              <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+                <svg
+                  className="w-12 h-12 text-muted-foreground"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold mb-2">
+                {searchQuery ? "No reels found" : "No reels yet"}
+              </h3>
               <p className="text-muted-foreground">
                 {searchQuery
-                  ? "No reels match your search."
-                  : "No reels yet. Paste a link to get started!"}
+                  ? "Try adjusting your search terms"
+                  : "Paste a link above to get started!"}
               </p>
             </div>
           ) : (
+            // Reels grid
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {filteredReels.map((reel, index) => (
                 <div
@@ -259,7 +248,7 @@ export function Dashboard({ onLogout }: DashboardProps) {
                   className="animate-fade-in"
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  <ReelCard reel={reel} onClick={() => setSelectedReel(reel)} />
+                  <ReelCard reel={reel} />
                 </div>
               ))}
             </div>
