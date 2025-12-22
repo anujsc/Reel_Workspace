@@ -8,7 +8,7 @@ import { testRoutes } from "./routes/test.routes.js";
 import { reelRoutes } from "./routes/reel.routes.js";
 import { folderRoutes } from "./routes/folder.routes.js";
 import { searchRoutes } from "./routes/search.routes.js";
-import { errorHandler } from "./middleware/errorHandler.js";
+import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 
 // Load environment variables
 dotenv.config();
@@ -66,7 +66,10 @@ app.use("/api/reel", reelRoutes);
 app.use("/api/folders", folderRoutes);
 app.use("/api/search", searchRoutes);
 
-// Global Error Handler (must be last)
+// 404 Handler - Must be after all routes
+app.use(notFoundHandler);
+
+// Global Error Handler - Must be last
 app.use(errorHandler);
 
 /**

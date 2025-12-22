@@ -1,14 +1,16 @@
 import { Router } from "express";
 import { protect } from "../middleware/auth.js";
 import {
-  validateSearch,
-  validateFilter,
+  searchQueryValidation,
+  filterQueryValidation,
 } from "../middleware/searchValidation.js";
+import { validationHandler } from "../middleware/validation.js";
 import {
   searchReels,
   filterReels,
   getFilterStats,
 } from "../controllers/search.controller.js";
+import { asyncHandler } from "../middleware/errorHandler.js";
 
 const router = Router();
 
@@ -20,10 +22,16 @@ const router = Router();
  * @query   limit - Results per page (optional, default 20, max 100)
  * @query   skip - Number of results to skip (optional, default 0)
  */
-router.get("/", protect, validateSearch, searchReels);
+router.get(
+  "/",
+  protect,
+  searchQueryValidation,
+  validationHandler,
+  asyncHandler(searchReels)
+);
 
 /**
- * @route   GET /api/reel/filter
+ * @route   GET /api/search/filter
  * @desc    Advanced filter for reels (folder, tags, date range)
  * @access  Private
  * @query   folderId - Filter by folder ID (optional)
@@ -33,13 +41,19 @@ router.get("/", protect, validateSearch, searchReels);
  * @query   limit - Results per page (optional, default 20, max 100)
  * @query   skip - Number of results to skip (optional, default 0)
  */
-router.get("/filter", protect, validateFilter, filterReels);
+router.get(
+  "/filter",
+  protect,
+  filterQueryValidation,
+  validationHandler,
+  asyncHandler(filterReels)
+);
 
 /**
- * @route   GET /api/reel/filter/stats
+ * @route   GET /api/search/filter/stats
  * @desc    Get filter statistics (available tags, date range, folder counts)
  * @access  Private
  */
-router.get("/filter/stats", protect, getFilterStats);
+router.get("/filter/stats", protect, asyncHandler(getFilterStats));
 
 export { router as searchRoutes };

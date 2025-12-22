@@ -87,9 +87,7 @@ export const testExtractServices = async (
         res,
         error.statusCode,
         error.message,
-        error.step
-          ? [{ step: error.step, error: error.rootCause?.message }]
-          : undefined
+        error.step ? [{ field: "step", message: error.step }] : undefined
       );
       return;
     }

@@ -1,17 +1,104 @@
 /**
- * Custom error classes for media processing pipeline
+ * Custom error classes for application
  */
 
+/**
+ * Base application error class
+ * All custom errors should extend this class
+ */
 export class AppError extends Error {
   public readonly code: string;
   public readonly statusCode: number;
+  public readonly isOperational: boolean;
 
-  constructor(message: string, code: string, statusCode: number = 500) {
+  constructor(
+    message: string,
+    code: string,
+    statusCode: number = 500,
+    isOperational: boolean = true
+  ) {
     super(message);
     this.name = this.constructor.name;
     this.code = code;
     this.statusCode = statusCode;
+    this.isOperational = isOperational;
     Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+/**
+ * Validation Error - 400
+ * Used for input validation failures
+ */
+export class ValidationError extends AppError {
+  public readonly fields?: Record<string, string>;
+
+  constructor(
+    message: string = "Validation failed",
+    fields?: Record<string, string>
+  ) {
+    super(message, "VALIDATION_ERROR", 400);
+    this.fields = fields;
+  }
+}
+
+/**
+ * Authentication Error - 401
+ * Used for authentication failures
+ */
+export class AuthenticationError extends AppError {
+  constructor(message: string = "Authentication failed") {
+    super(message, "AUTHENTICATION_ERROR", 401);
+  }
+}
+
+/**
+ * Authorization Error - 403
+ * Used for permission/access control failures
+ */
+export class AuthorizationError extends AppError {
+  constructor(message: string = "Access denied") {
+    super(message, "AUTHORIZATION_ERROR", 403);
+  }
+}
+
+/**
+ * Not Found Error - 404
+ * Used when a resource is not found
+ */
+export class NotFoundError extends AppError {
+  constructor(message: string = "Resource not found") {
+    super(message, "NOT_FOUND", 404);
+  }
+}
+
+/**
+ * Conflict Error - 409
+ * Used for duplicate resources or conflicting operations
+ */
+export class ConflictError extends AppError {
+  constructor(message: string = "Resource already exists") {
+    super(message, "CONFLICT", 409);
+  }
+}
+
+/**
+ * Rate Limit Error - 429
+ * Used when rate limits are exceeded
+ */
+export class RateLimitError extends AppError {
+  constructor(message: string = "Too many requests") {
+    super(message, "RATE_LIMIT_EXCEEDED", 429);
+  }
+}
+
+/**
+ * Internal Server Error - 500
+ * Used for unexpected server errors
+ */
+export class InternalServerError extends AppError {
+  constructor(message: string = "Internal server error") {
+    super(message, "INTERNAL_SERVER_ERROR", 500, false);
   }
 }
 
@@ -112,5 +199,31 @@ export class ReelProcessingError extends AppError {
     super(message, "REEL_PROCESSING_ERROR", statusCode);
     this.step = step;
     this.rootCause = rootCause;
+  }
+}
+
+/**
+ * Database Error - 500
+ * Used for database operation failures
+ */
+export class DatabaseError extends AppError {
+  constructor(message: string = "Database operation failed") {
+    super(message, "DATABASE_ERROR", 500, false);
+  }
+}
+
+/**
+ * External Service Error - 502
+ * Used when external API calls fail
+ */
+export class ExternalServiceError extends AppError {
+  public readonly service?: string;
+
+  constructor(
+    message: string = "External service unavailable",
+    service?: string
+  ) {
+    super(message, "EXTERNAL_SERVICE_ERROR", 502);
+    this.service = service;
   }
 }

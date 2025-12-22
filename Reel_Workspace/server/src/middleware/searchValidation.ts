@@ -1,212 +1,219 @@
-import { Request, Response, NextFunction } from "express";
-import { errorResponse } from "../utils/response.js";
+import { query, ValidationChain } from "express-validator";
+import mongoose from "mongoose";
 
 /**
- * Validate search query parameters
+ * Enhanced search validation with express-validator
+ * Provides comprehensive validation for search and filter operations
  */
-export const validateSearch = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
-  const { q, limit, skip } = req.query;
 
-  // Validate query parameter
-  if (!q) {
-    errorResponse(res, 400, "Search query parameter 'q' is required", [
-      { field: "q", message: "Query parameter is required" },
-    ]);
-    return;
-  }
-
-  if (typeof q !== "string") {
-    errorResponse(res, 400, "Search query must be a string", [
-      { field: "q", message: "Must be a string" },
-    ]);
-    return;
-  }
-
-  if (q.trim().length < 2) {
-    errorResponse(res, 400, "Search query must be at least 2 characters", [
-      { field: "q", message: "Minimum 2 characters required" },
-    ]);
-    return;
-  }
-
-  if (q.length > 200) {
-    errorResponse(res, 400, "Search query too long", [
-      { field: "q", message: "Maximum 200 characters allowed" },
-    ]);
-    return;
-  }
-
-  // Validate pagination
-  if (limit !== undefined) {
-    const limitNum = Number(limit);
-    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
-      errorResponse(res, 400, "Limit must be a number between 1 and 100", [
-        { field: "limit", message: "Must be between 1 and 100" },
-      ]);
-      return;
-    }
-  }
-
-  if (skip !== undefined) {
-    const skipNum = Number(skip);
-    if (isNaN(skipNum) || skipNum < 0) {
-      errorResponse(res, 400, "Skip must be a non-negative number", [
-        { field: "skip", message: "Must be >= 0" },
-      ]);
-      return;
-    }
-  }
-
-  next();
-};
+// ============================================================================
+// SEARCH VALIDATION
+// ============================================================================
 
 /**
- * Validate filter query parameters
+ * Validation rules for search endpoint
  */
-export const validateFilter = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
-  const { folderId, tags, dateFrom, dateTo, limit, skip } = req.query;
+export const searchQueryValidation: ValidationChain[] = [
+  query("q")
+    .trim()
+    .notEmpty()
+    .withMessage("Search query parameter 'q' is required")
+    .isString()
+    .withMessage("Search query must be a string")
+    .isLength({ min: 2, max: 200 })
+    .withMessage("Search query must be between 2 and 200 characters"),
 
-  // At least one filter must be provided
-  if (!folderId && !tags && !dateFrom && !dateTo) {
-    errorResponse(res, 400, "At least one filter parameter must be provided", [
-      {
-        message: "Provide at least one of: folderId, tags, dateFrom, dateTo",
-      },
-    ]);
-    return;
-  }
+  query("limit")
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage("Limit must be a number between 1 and 100")
+    .toInt(),
 
-  // Validate folderId format (basic check, detailed check in controller)
-  if (folderId !== undefined) {
-    if (typeof folderId !== "string") {
-      errorResponse(res, 400, "Folder ID must be a string", [
-        { field: "folderId", message: "Must be a string" },
-      ]);
-      return;
+  query("skip")
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage("Skip must be a non-negative number")
+    .toInt(),
+];
+
+// ============================================================================
+// FILTER VALIDATION
+// ============================================================================
+
+/**
+ * Validation rules for filter endpoint
+ */
+export const filterQueryValidation: ValidationChain[] = [
+  query("folderId")
+    .optional()
+    .trim()
+    .custom((value) => {
+      if (value && !mongoose.Types.ObjectId.isValid(value)) {
+        throw new Error("Invalid folder ID format");
+      }
+      return true;
+    }),
+
+  query("tags")
+    .optional()
+    .trim()
+    .custom((value) => {
+      if (typeof value !== "string") {
+        throw new Error("Tags must be a comma-separated string");
+      }
+
+      const tagArray = value.split(",").map((t) => t.trim());
+
+      if (tagArray.length > 20) {
+        throw new Error("Maximum 20 tags allowed");
+      }
+
+      if (tagArray.some((tag) => tag.length > 50)) {
+        throw new Error("Each tag must be 50 characters or less");
+      }
+
+      return true;
+    }),
+
+  query("dateFrom")
+    .optional()
+    .trim()
+    .isISO8601()
+    .withMessage("dateFrom must be a valid ISO date (YYYY-MM-DD)")
+    .toDate(),
+
+  query("dateTo")
+    .optional()
+    .trim()
+    .isISO8601()
+    .withMessage("dateTo must be a valid ISO date (YYYY-MM-DD)")
+    .toDate()
+    .custom((dateTo, { req }) => {
+      const dateFrom = req.query?.dateFrom;
+
+      if (dateFrom && dateTo) {
+        const from = new Date(dateFrom as string);
+        const to = new Date(dateTo);
+
+        if (from > to) {
+          throw new Error("dateFrom must be before dateTo");
+        }
+
+        // Check if range is too large (more than 5 years)
+        const diffYears =
+          (to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24 * 365);
+        if (diffYears > 5) {
+          throw new Error("Date range cannot exceed 5 years");
+        }
+      }
+
+      return true;
+    }),
+
+  query("limit")
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage("Limit must be a number between 1 and 100")
+    .toInt(),
+
+  query("skip")
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage("Skip must be a non-negative number")
+    .toInt(),
+
+  // Custom validation to ensure at least one filter is provided
+  query().custom((value, { req }) => {
+    const { folderId, tags, dateFrom, dateTo } = req.query || {};
+
+    if (!folderId && !tags && !dateFrom && !dateTo) {
+      throw new Error(
+        "At least one filter parameter must be provided (folderId, tags, dateFrom, or dateTo)"
+      );
     }
 
-    if (folderId.length !== 24) {
-      errorResponse(res, 400, "Invalid folder ID format", [
-        {
-          field: "folderId",
-          message: "Must be a valid ObjectId (24 characters)",
-        },
-      ]);
-      return;
-    }
-  }
+    return true;
+  }),
+];
 
-  // Validate tags format
-  if (tags !== undefined) {
-    if (typeof tags !== "string") {
-      errorResponse(res, 400, "Tags must be a comma-separated string", [
-        { field: "tags", message: "Must be a string" },
-      ]);
-      return;
-    }
+// ============================================================================
+// ADVANCED SEARCH VALIDATION
+// ============================================================================
 
-    const tagArray = tags.split(",").map((t) => t.trim());
-    if (tagArray.length > 20) {
-      errorResponse(res, 400, "Too many tags", [
-        { field: "tags", message: "Maximum 20 tags allowed" },
-      ]);
-      return;
-    }
+/**
+ * Validation rules for advanced search with sorting
+ */
+export const advancedSearchValidation: ValidationChain[] = [
+  query("q")
+    .optional()
+    .trim()
+    .isString()
+    .withMessage("Search query must be a string")
+    .isLength({ min: 1, max: 200 })
+    .withMessage("Search query must be between 1 and 200 characters"),
 
-    if (tagArray.some((tag) => tag.length > 50)) {
-      errorResponse(res, 400, "Tag too long", [
-        { field: "tags", message: "Each tag must be <= 50 characters" },
-      ]);
-      return;
-    }
-  }
+  query("folderId")
+    .optional()
+    .trim()
+    .custom((value) => {
+      if (value && !mongoose.Types.ObjectId.isValid(value)) {
+        throw new Error("Invalid folder ID format");
+      }
+      return true;
+    }),
 
-  // Validate date format (basic check)
-  if (dateFrom !== undefined) {
-    if (typeof dateFrom !== "string") {
-      errorResponse(res, 400, "dateFrom must be a string", [
-        { field: "dateFrom", message: "Must be a string" },
-      ]);
-      return;
-    }
+  query("tags")
+    .optional()
+    .custom((value) => {
+      // Handle both string and array formats
+      if (typeof value === "string") {
+        const tagArray = value.split(",").map((t) => t.trim());
+        if (tagArray.length > 20) {
+          throw new Error("Maximum 20 tags allowed");
+        }
+        return true;
+      }
 
-    const date = new Date(dateFrom);
-    if (isNaN(date.getTime())) {
-      errorResponse(res, 400, "Invalid dateFrom format", [
-        { field: "dateFrom", message: "Must be a valid ISO date (YYYY-MM-DD)" },
-      ]);
-      return;
-    }
-  }
+      if (Array.isArray(value)) {
+        if (value.length > 20) {
+          throw new Error("Maximum 20 tags allowed");
+        }
+        if (value.some((tag) => typeof tag !== "string")) {
+          throw new Error("All tags must be strings");
+        }
+        return true;
+      }
 
-  if (dateTo !== undefined) {
-    if (typeof dateTo !== "string") {
-      errorResponse(res, 400, "dateTo must be a string", [
-        { field: "dateTo", message: "Must be a string" },
-      ]);
-      return;
-    }
+      throw new Error("Tags must be a string or array of strings");
+    }),
 
-    const date = new Date(dateTo);
-    if (isNaN(date.getTime())) {
-      errorResponse(res, 400, "Invalid dateTo format", [
-        { field: "dateTo", message: "Must be a valid ISO date (YYYY-MM-DD)" },
-      ]);
-      return;
-    }
-  }
+  query("sortBy")
+    .optional()
+    .isIn(["createdAt", "updatedAt", "title", "relevance"])
+    .withMessage(
+      "Sort by must be one of: createdAt, updatedAt, title, relevance"
+    ),
 
-  // Validate date range logic
-  if (dateFrom && dateTo) {
-    const from = new Date(dateFrom);
-    const to = new Date(dateTo);
+  query("sortOrder")
+    .optional()
+    .isIn(["asc", "desc"])
+    .withMessage("Sort order must be either 'asc' or 'desc'"),
 
-    if (from > to) {
-      errorResponse(res, 400, "dateFrom must be before dateTo", [
-        { field: "dateFrom", message: "Must be before dateTo" },
-      ]);
-      return;
-    }
+  query("limit")
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage("Limit must be a number between 1 and 100")
+    .toInt(),
 
-    // Check if range is too large (e.g., more than 5 years)
-    const diffYears =
-      (to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24 * 365);
-    if (diffYears > 5) {
-      errorResponse(res, 400, "Date range too large", [
-        { message: "Maximum 5 years range allowed" },
-      ]);
-      return;
-    }
-  }
+  query("skip")
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage("Skip must be a non-negative number")
+    .toInt(),
 
-  // Validate pagination
-  if (limit !== undefined) {
-    const limitNum = Number(limit);
-    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
-      errorResponse(res, 400, "Limit must be a number between 1 and 100", [
-        { field: "limit", message: "Must be between 1 and 100" },
-      ]);
-      return;
-    }
-  }
-
-  if (skip !== undefined) {
-    const skipNum = Number(skip);
-    if (isNaN(skipNum) || skipNum < 0) {
-      errorResponse(res, 400, "Skip must be a non-negative number", [
-        { field: "skip", message: "Must be >= 0" },
-      ]);
-      return;
-    }
-  }
-
-  next();
-};
+  query("page")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("Page must be a positive number")
+    .toInt(),
+];

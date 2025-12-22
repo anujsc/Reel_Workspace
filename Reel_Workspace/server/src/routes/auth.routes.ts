@@ -6,6 +6,7 @@ import {
   validationHandler,
 } from "../middleware/validation.js";
 import { protect } from "../middleware/auth.js";
+import { asyncHandler } from "../middleware/errorHandler.js";
 
 const router = Router();
 
@@ -14,20 +15,25 @@ const router = Router();
  * @desc    Register a new user
  * @access  Public
  */
-router.post("/register", registerValidation, validationHandler, register);
+router.post(
+  "/register",
+  registerValidation,
+  validationHandler,
+  asyncHandler(register)
+);
 
 /**
  * @route   POST /api/auth/login
  * @desc    Login user and get token
  * @access  Public
  */
-router.post("/login", loginValidation, validationHandler, login);
+router.post("/login", loginValidation, validationHandler, asyncHandler(login));
 
 /**
  * @route   GET /api/auth/me
  * @desc    Get current logged-in user
  * @access  Private
  */
-router.get("/me", protect, getMe);
+router.get("/me", protect, asyncHandler(getMe));
 
 export const authRoutes = router;
