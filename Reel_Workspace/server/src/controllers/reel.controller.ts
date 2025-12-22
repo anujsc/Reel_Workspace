@@ -79,7 +79,7 @@ export const extractReel = async (
     sourceUrl: processingResult.sourceUrl,
     videoUrl: processingResult.videoUrl,
     thumbnailUrl: processingResult.thumbnailUrl,
-    title: processingResult.metadata?.title || "Untitled Reel",
+    title: processingResult.title, // AI-generated descriptive title
     transcript: processingResult.transcript,
     summary: processingResult.summary,
     detailedExplanation: processingResult.detailedExplanation,

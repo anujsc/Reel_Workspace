@@ -39,6 +39,7 @@ export interface GlossaryTerm {
  * Result from AI summarization
  */
 export interface SummaryResult {
+  title: string;
   summary: string;
   detailedExplanation: string;
   keyPoints: string[];
@@ -60,6 +61,7 @@ export interface SummaryResult {
  * Expected JSON structure from Groq
  */
 interface GroqSummaryResponse {
+  title: string;
   summary: string;
   detailedExplanation: string;
   keyPoints: string[];
@@ -144,6 +146,7 @@ function parseGroqResponse(responseText: string): GroqSummaryResponse {
     }));
 
     return {
+      title: String(parsed.title || "Untitled Reel"),
       summary: String(parsed.summary || ""),
       detailedExplanation: String(parsed.detailedExplanation || ""),
       keyPoints: ensureArray(parsed.keyPoints).map(String),
@@ -211,6 +214,8 @@ IMPORTANT: The transcript may be in Hindi, English, or mixed languages. Understa
 Provide this EXACT JSON format with ALL fields:
 
 {
+  "title": "A clear, descriptive, engaging title (5-10 words) that tells users exactly what this reel is about. Make it specific and informative, not generic. Examples: 'How to Build Muscle Fast at Home', '5 Python Tips for Beginners', 'Understanding Stock Market Basics'",
+  
   "summary": "A concise 2-3 sentence overview of what the content is about",
   
   "detailedExplanation": "A comprehensive 4-6 paragraph explanation that covers:\n- What the topic is and why it matters\n- Key concepts explained in simple terms\n- How it works or applies in real life\n- Benefits or importance\n- Any tips or best practices mentioned\nUse clear, simple language with proper structure.",
@@ -325,6 +330,8 @@ Provide this EXACT JSON format with ALL fields:
 }
 
 CRITICAL RULES:
+- Title MUST be specific and descriptive (not "Untitled" or "Video about X")
+- Title should clearly tell users what they'll learn or what the reel is about
 - Write in simple, clear English that anyone can understand
 - Make all content actionable and practical
 - Ensure quiz questions test real understanding, not just recall
@@ -375,6 +382,7 @@ ${processedTranscript}`;
     }
 
     console.log(`[AI Summary] Summarization complete`);
+    console.log(`[AI Summary] Title: ${parsed.title}`);
     console.log(`[AI Summary] Summary: ${parsed.summary.substring(0, 100)}...`);
     console.log(`[AI Summary] Key Points: ${parsed.keyPoints.length}`);
     console.log(`[AI Summary] Examples: ${parsed.examples.length}`);
@@ -388,6 +396,7 @@ ${processedTranscript}`;
     console.log(`[AI Summary] Folder: ${parsed.folder}`);
 
     return {
+      title: parsed.title,
       summary: parsed.summary,
       detailedExplanation: parsed.detailedExplanation,
       keyPoints: parsed.keyPoints,

@@ -17,6 +17,7 @@ export interface ReelProcessingResult {
   sourceUrl: string;
   videoUrl: string;
   thumbnailUrl: string;
+  title: string;
   transcript: string;
   summary: string;
   detailedExplanation: string;
@@ -49,7 +50,7 @@ export interface ReelProcessingResult {
   ocrText: string;
   metadata?: {
     durationSeconds?: number;
-    title?: string;
+    originalTitle?: string;
     description?: string;
   };
   timings?: {
@@ -213,6 +214,7 @@ export async function processReel(
       sourceUrl: mediaResult.sourceUrl,
       videoUrl: mediaResult.videoUrl,
       thumbnailUrl: thumbnailResult.thumbnailUrl,
+      title: summaryResult.title,
       transcript: transcriptResult.transcript,
       summary: summaryResult.summary,
       detailedExplanation: summaryResult.detailedExplanation,
@@ -231,7 +233,7 @@ export async function processReel(
       ocrText: ocrResult.text,
       metadata: {
         durationSeconds: audioResult.durationSeconds,
-        title: mediaResult.title,
+        originalTitle: mediaResult.title,
         description: mediaResult.description,
       },
       timings: {
