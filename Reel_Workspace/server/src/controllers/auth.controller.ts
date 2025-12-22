@@ -10,9 +10,18 @@ import {
 } from "../utils/errors.js";
 
 /**
- * Register a new user
+ * Register a new user account
+ *
+ * Creates a new user with email and password. Password is automatically hashed
+ * using bcrypt before storage. Returns user data and JWT token for immediate authentication.
+ *
  * @route POST /api/auth/register
  * @access Public
+ * @param {Request} req - Express request object with email and password in body
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>} Sends 201 response with user data and JWT token
+ * @throws {ConflictError} If email already exists
+ * @throws {DatabaseError} If user creation fails
  */
 export const register = async (req: Request, res: Response): Promise<void> => {
   const { email, password } = req.body;
@@ -51,9 +60,17 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 };
 
 /**
- * Login user
+ * Authenticate user and generate JWT token
+ *
+ * Validates user credentials and returns JWT token for subsequent authenticated requests.
+ * Password is verified using bcrypt comparison.
+ *
  * @route POST /api/auth/login
  * @access Public
+ * @param {Request} req - Express request object with email and password in body
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>} Sends 200 response with user data and JWT token
+ * @throws {AuthenticationError} If email not found or password incorrect
  */
 export const login = async (req: Request, res: Response): Promise<void> => {
   const { email, password } = req.body;
@@ -92,9 +109,17 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 };
 
 /**
- * Get current logged-in user
+ * Get current authenticated user information
+ *
+ * Returns the user data for the currently authenticated user.
+ * User is attached to request by the protect middleware.
+ *
  * @route GET /api/auth/me
- * @access Private
+ * @access Private (requires JWT token)
+ * @param {AuthRequest} req - Express request object with authenticated user
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>} Sends 200 response with user data
+ * @throws {AuthenticationError} If user not found in request
  */
 export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
   // User is already attached to request by protect middleware

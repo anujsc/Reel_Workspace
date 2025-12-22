@@ -1,23 +1,12 @@
-import {
-  fetchInstagramMedia,
-  InstagramMediaResult,
-} from "./instagramFetcher.js";
-import {
-  downloadVideo,
-  deleteFile,
-  DownloadedVideoResult,
-} from "./videoDownloader.js";
-import {
-  extractAudioToMp3,
-  deleteAudioFile,
-  AudioExtractionResult,
-} from "./audioExtractor.js";
+import { fetchInstagramMedia } from "./instagramFetcher.js";
+import { downloadVideo, deleteFile } from "./videoDownloader.js";
+import { extractAudioToMp3, deleteAudioFile } from "./audioExtractor.js";
 import {
   generateAndUploadThumbnail,
   ThumbnailResult,
 } from "./thumbnailService.js";
-import { transcribeAudioWithGemini, TranscriptResult } from "./aiTranscript.js";
-import { summarizeWithGroq, SummaryResult } from "./aiSummary.js";
+import { transcribeAudioWithGemini } from "./aiTranscript.js";
+import { summarizeWithGroq } from "./aiSummary.js";
 import { extractTextFromImage, OCRResult } from "./aiOCR.js";
 import { ReelProcessingError } from "../utils/errors.js";
 
@@ -76,7 +65,11 @@ export interface ReelProcessingResult {
 }
 
 /**
- * Measure execution time of an async function
+ * Measures the execution time of an async function
+ *
+ * @template T - The return type of the function
+ * @param {() => Promise<T>} fn - The async function to measure
+ * @returns {Promise<{result: T, durationMs: number}>} The function result and execution time in milliseconds
  */
 async function measureTime<T>(
   fn: () => Promise<T>
@@ -89,6 +82,26 @@ async function measureTime<T>(
 
 /**
  * Master orchestrator for processing Instagram Reels
+ *
+ * This function coordinates the entire reel extraction pipeline:
+ * 1. Fetches Instagram media metadata
+ * 2. Downloads the video file
+ * 3. Extracts audio from video
+ * 4. Generates and uploads thumbnail
+ * 5. Transcribes audio using Gemini AI
+ * 6. Generates comprehensive summary using Groq AI
+ * 7. Extracts text from video frames using OCR
+ *
+ * All temporary files are automatically cleaned up after processing.
+ *
+ * @param {string} instagramUrl - The Instagram reel URL to process
+ * @returns {Promise<ReelProcessingResult>} Complete processing result with all extracted data
+ * @throws {ReelProcessingError} If any step in the pipeline fails
+ *
+ * @example
+ * const result = await processReel('https://www.instagram.com/reel/ABC123/');
+ * console.log(result.summary); // AI-generated summary
+ * console.log(result.tags); // Auto-generated tags
  */
 export async function processReel(
   instagramUrl: string

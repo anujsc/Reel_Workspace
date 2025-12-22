@@ -18,7 +18,22 @@ import mongoose from "mongoose";
 
 /**
  * Extract and create a new reel from Instagram URL
- * POST /api/reel/extract
+ *
+ * Orchestrates the complete reel extraction pipeline:
+ * - Checks for duplicate URLs
+ * - Downloads and processes video
+ * - Generates AI transcript and summary
+ * - Extracts OCR text from frames
+ * - Auto-categorizes into folder
+ * - Saves to database
+ *
+ * @route POST /api/reel/extract
+ * @access Private
+ * @param {AuthRequest} req - Express request with instagramUrl in body
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>} Sends 201 response with reel data and processing timings
+ * @throws {ConflictError} If reel URL already extracted by user
+ * @throws {ReelProcessingError} If extraction pipeline fails
  */
 export const extractReel = async (
   req: AuthRequest,
@@ -26,8 +41,6 @@ export const extractReel = async (
 ): Promise<void> => {
   const { instagramUrl } = req.body;
   const userId = req.user!._id;
-
-  console.log(`[Reel Controller] Processing URL: ${instagramUrl}`);
 
   // Check for duplicate URL
   const existingReel = await Reel.findOne({
@@ -57,7 +70,6 @@ export const extractReel = async (
       color: "#3B82F6", // Default blue
       reelCount: 0,
     });
-    console.log(`[Reel Controller] Created new folder: ${folder.name}`);
   }
 
   // Create reel document
@@ -91,8 +103,6 @@ export const extractReel = async (
     $inc: { reelCount: 1 },
   });
 
-  console.log(`[Reel Controller] ✓ Reel created successfully: ${reel._id}`);
-
   createdResponse(
     res,
     {
@@ -105,7 +115,16 @@ export const extractReel = async (
 
 /**
  * Get all reels for authenticated user with pagination
- * GET /api/reel?limit=10&skip=0&folderId=xxx
+ *
+ * Supports optional filtering by folder and pagination parameters.
+ * Results are sorted by creation date (newest first).
+ *
+ * @route GET /api/reel?limit=10&skip=0&folderId=xxx
+ * @access Private
+ * @param {AuthRequest} req - Express request with query params (limit, skip, folderId)
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>} Sends 200 response with paginated reel list
+ * @throws {ValidationError} If folderId format is invalid
  */
 export const getAllReels = async (
   req: AuthRequest,
@@ -153,8 +172,18 @@ export const getAllReels = async (
 };
 
 /**
- * Get single reel by ID
- * GET /api/reel/:id
+ * Get single reel by ID with complete details
+ *
+ * Returns full reel data including transcript, summary, learning materials,
+ * and populated folder information.
+ *
+ * @route GET /api/reel/:id
+ * @access Private
+ * @param {AuthRequest} req - Express request with reel ID in params
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>} Sends 200 response with complete reel data
+ * @throws {ValidationError} If ID format is invalid
+ * @throws {NotFoundError} If reel not found or doesn't belong to user
  */
 export const getReelById = async (
   req: AuthRequest,
@@ -183,8 +212,18 @@ export const getReelById = async (
 };
 
 /**
- * Update reel (title, folder, tags)
- * PATCH /api/reel/:id
+ * Update reel metadata (title, folder, tags)
+ *
+ * Allows updating reel title, tags array, and moving to different folder.
+ * When moving folders, automatically updates reel counts for both folders.
+ *
+ * @route PATCH /api/reel/:id
+ * @access Private
+ * @param {AuthRequest} req - Express request with reel ID in params and updates in body
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>} Sends 200 response with updated reel data
+ * @throws {ValidationError} If ID or data format is invalid
+ * @throws {NotFoundError} If reel or target folder not found
  */
 export const updateReel = async (
   req: AuthRequest,
@@ -237,10 +276,6 @@ export const updateReel = async (
       Folder.findByIdAndUpdate(oldFolderId, { $inc: { reelCount: -1 } }),
       Folder.findByIdAndUpdate(folderId, { $inc: { reelCount: 1 } }),
     ]);
-
-    console.log(
-      `[Reel Controller] Moved reel from folder ${oldFolderId} to ${folderId}`
-    );
   }
 
   // Update reel
@@ -254,8 +289,18 @@ export const updateReel = async (
 };
 
 /**
- * Delete reel (soft delete)
- * DELETE /api/reel/:id
+ * Soft delete a reel
+ *
+ * Marks reel as deleted without removing from database.
+ * Automatically decrements the folder's reel count.
+ *
+ * @route DELETE /api/reel/:id
+ * @access Private
+ * @param {AuthRequest} req - Express request with reel ID in params
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>} Sends 204 No Content response
+ * @throws {ValidationError} If ID format is invalid
+ * @throws {NotFoundError} If reel not found or already deleted
  */
 export const deleteReel = async (
   req: AuthRequest,
@@ -288,8 +333,6 @@ export const deleteReel = async (
   await Folder.findByIdAndUpdate(reel.folderId, {
     $inc: { reelCount: -1 },
   });
-
-  console.log(`[Reel Controller] ✓ Reel deleted: ${id}`);
 
   noContentResponse(res);
 };

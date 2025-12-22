@@ -16,8 +16,18 @@ import {
 import mongoose from "mongoose";
 
 /**
- * Create a new folder
- * POST /api/folders
+ * Create a new folder for organizing reels
+ *
+ * Creates a folder with unique name per user. Folder names are case-sensitive
+ * and must be 1-50 characters. Color defaults to blue if not provided.
+ *
+ * @route POST /api/folders
+ * @access Private
+ * @param {AuthRequest} req - Express request with name and color in body
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>} Sends 201 response with created folder
+ * @throws {ConflictError} If folder name already exists for user
+ * @throws {ValidationError} If name or color format is invalid
  */
 export const createFolder = async (
   req: AuthRequest,
@@ -44,14 +54,20 @@ export const createFolder = async (
     reelCount: 0,
   });
 
-  console.log(`[Folder Controller] ✓ Folder created: ${folder.name}`);
-
   createdResponse(res, folder, "Folder created successfully");
 };
 
 /**
  * Get all folders for authenticated user
- * GET /api/folders
+ *
+ * Returns all folders sorted alphabetically by name.
+ * Includes reel count for each folder.
+ *
+ * @route GET /api/folders
+ * @access Private
+ * @param {AuthRequest} req - Express request with authenticated user
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>} Sends 200 response with folders array and total count
  */
 export const getAllFolders = async (
   req: AuthRequest,
@@ -103,8 +119,20 @@ export const getFolderById = async (
 };
 
 /**
- * Update folder (name, color)
- * PATCH /api/folders/:id
+ * Update folder name or color
+ *
+ * Allows updating folder name and/or color. Default folders cannot be renamed.
+ * New name must be unique per user.
+ *
+ * @route PATCH /api/folders/:id
+ * @access Private
+ * @param {AuthRequest} req - Express request with folder ID in params and updates in body
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>} Sends 200 response with updated folder
+ * @throws {ValidationError} If ID or data format is invalid
+ * @throws {AuthorizationError} If attempting to rename default folder
+ * @throws {NotFoundError} If folder not found
+ * @throws {ConflictError} If new name already exists
  */
 export const updateFolder = async (
   req: AuthRequest,
@@ -164,14 +192,27 @@ export const updateFolder = async (
     { new: true, runValidators: true }
   );
 
-  console.log(`[Folder Controller] ✓ Folder updated: ${id}`);
-
   successResponse(res, 200, updatedFolder, "Folder updated successfully");
 };
 
 /**
- * Delete folder
- * DELETE /api/folders/:id
+ * Delete a folder
+ *
+ * Deletes folder with optional strategy for handling contained reels:
+ * - prevent (default): Fails if folder contains reels
+ * - move: Moves reels to "Uncategorized" folder before deletion
+ *
+ * Default folders cannot be deleted.
+ *
+ * @route DELETE /api/folders/:id?strategy=move
+ * @access Private
+ * @param {AuthRequest} req - Express request with folder ID in params and strategy in query
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>} Sends 204 No Content response
+ * @throws {ValidationError} If ID format is invalid
+ * @throws {AuthorizationError} If attempting to delete default folder
+ * @throws {NotFoundError} If folder not found
+ * @throws {ConflictError} If folder contains reels and strategy is prevent
  */
 export const deleteFolder = async (
   req: AuthRequest,
@@ -229,10 +270,6 @@ export const deleteFolder = async (
       await Folder.findByIdAndUpdate(uncategorizedFolder._id, {
         $inc: { reelCount: folder.reelCount },
       });
-
-      console.log(
-        `[Folder Controller] Moved ${updateResult.modifiedCount} reels to Uncategorized`
-      );
     } else {
       // Prevent deletion
       throw new ConflictError(
@@ -243,8 +280,6 @@ export const deleteFolder = async (
 
   // Delete folder
   await Folder.findByIdAndDelete(id);
-
-  console.log(`[Folder Controller] ✓ Folder deleted: ${id}`);
 
   noContentResponse(res);
 };

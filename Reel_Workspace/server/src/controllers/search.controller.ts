@@ -38,8 +38,17 @@ export interface SearchResponse {
 }
 
 /**
- * Text search across reels
- * GET /api/search?q=keyword&limit=20&skip=0
+ * Full-text search across reel content
+ *
+ * Searches across summary, transcript, and OCR text fields using MongoDB text index.
+ * Results are sorted by relevance score (descending) and creation date.
+ *
+ * @route GET /api/search?q=keyword&limit=20&skip=0
+ * @access Private
+ * @param {AuthRequest} req - Express request with search query params
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>} Sends 200 response with search results and pagination
+ * @throws {ValidationError} If query parameter is missing or invalid
  */
 export const searchReels = async (
   req: AuthRequest,
@@ -49,8 +58,6 @@ export const searchReels = async (
   const query = (req.query.q as string) || "";
   const limit = parseInt(req.query.limit as string) || 20;
   const skip = parseInt(req.query.skip as string) || 0;
-
-  console.log(`[Search] User ${userId} searching for: "${query}"`);
 
   // Build search query with text search
   const searchQuery: any = {
@@ -72,8 +79,6 @@ export const searchReels = async (
 
   // Get total count
   const total = await Reel.countDocuments(searchQuery);
-
-  console.log(`[Search] Found ${total} results for "${query}"`);
 
   // Format results
   const formattedResults: SearchResult[] = results.map((reel: any) => ({
@@ -147,8 +152,18 @@ export interface FilterResponse {
 }
 
 /**
- * Advanced filter for reels
- * GET /api/reel/filter?folderId=xxx&tags=tag1,tag2&dateFrom=2024-01-01&dateTo=2024-12-31&limit=20&skip=0
+ * Advanced filtering for reels
+ *
+ * Supports filtering by folder, tags (OR logic), and date range (inclusive).
+ * All filters are combined with AND logic. Returns filtered results with
+ * pagination and filter statistics.
+ *
+ * @route GET /api/reel/filter?folderId=xxx&tags=tag1,tag2&dateFrom=2024-01-01&dateTo=2024-12-31
+ * @access Private
+ * @param {AuthRequest} req - Express request with filter query params
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>} Sends 200 response with filtered results and counts
+ * @throws {ValidationError} If folder ID or date format is invalid
  */
 export const filterReels = async (
   req: AuthRequest,
@@ -161,13 +176,6 @@ export const filterReels = async (
   const dateTo = req.query.dateTo as string;
   const limit = parseInt(req.query.limit as string) || 20;
   const skip = parseInt(req.query.skip as string) || 0;
-
-  console.log(`[Filter] User ${userId} filtering with:`, {
-    folderId,
-    tags: tagsParam,
-    dateFrom,
-    dateTo,
-  });
 
   // Build filter conditions
   const filterConditions: any[] = [{ userId }, { isDeleted: false }];
@@ -238,10 +246,6 @@ export const filterReels = async (
     isDeleted: false,
   });
 
-  console.log(
-    `[Filter] Found ${filteredCount} results (${totalCount} total reels)`
-  );
-
   // Format results
   const formattedResults: FilterResult[] = results.map((reel: any) => ({
     id: reel._id.toString(),
@@ -283,7 +287,17 @@ export const filterReels = async (
 
 /**
  * Get filter statistics for UI
- * GET /api/reel/filter/stats
+ *
+ * Returns aggregated statistics to help build filter UI:
+ * - Top 50 tags with usage counts
+ * - Date range (oldest to newest reel)
+ * - Folder distribution with reel counts
+ *
+ * @route GET /api/reel/filter/stats
+ * @access Private
+ * @param {AuthRequest} req - Express request with authenticated user
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>} Sends 200 response with filter statistics
  */
 export const getFilterStats = async (
   req: AuthRequest,
