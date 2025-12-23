@@ -1,6 +1,13 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, Trash2, Edit2 } from "lucide-react";
+import { ArrowLeft, Loader2, Trash2, Edit2, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useReel } from "../hooks/useReel";
 import { ReelSource } from "../components/ReelSource";
 import { ReelKnowledge } from "../components/ReelKnowledge";
@@ -54,25 +61,27 @@ export default function ReelDetail() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Back Button */}
-      <div className="border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-4 flex items-center justify-between">
+      {/* Header */}
+      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-3 flex items-center justify-between">
+          {/* Back Button */}
           <Button
             variant="ghost"
             onClick={() => navigate("/dashboard")}
-            className="gap-2"
+            className="gap-2 hover:bg-gray-100"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
+            <span className="hidden sm:inline">Back to Dashboard</span>
+            <span className="sm:hidden">Back</span>
           </Button>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2">
+          {/* Action Buttons - Desktop */}
+          <div className="hidden md:flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsEditModalOpen(true)}
-              className="gap-2"
+              className="gap-2 hover:bg-gray-50"
             >
               <Edit2 className="w-4 h-4" />
               Edit Title
@@ -86,6 +95,39 @@ export default function ReelDetail() {
               <Trash2 className="w-4 h-4" />
               Delete
             </Button>
+          </div>
+
+          {/* Action Menu - Mobile */}
+          <div className="md:hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 hover:bg-gray-100"
+                >
+                  <MoreVertical className="w-5 h-5" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="cursor-pointer py-3"
+                >
+                  <Edit2 className="w-4 h-4 mr-3" />
+                  <span className="text-base">Edit Title</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                  className="cursor-pointer text-destructive focus:text-destructive py-3"
+                >
+                  <Trash2 className="w-4 h-4 mr-3" />
+                  <span className="text-base">Delete Reel</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>

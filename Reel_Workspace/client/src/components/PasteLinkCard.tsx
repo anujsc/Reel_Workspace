@@ -87,43 +87,50 @@ export function PasteLinkCard() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="calm-card animate-fade-in">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-          <Link className="w-5 h-5 text-foreground" />
-        </div>
-        <div>
-          <h2 className="font-semibold text-foreground">
-            Paste Instagram Link
+    <form onSubmit={handleSubmit} className="animate-fade-in">
+      <div className="bg-card border border-border rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+        {/* Header */}
+        <div className="mb-5">
+          <h2 className="text-lg font-semibold text-foreground mb-1">
+            Add Knowledge from Instagram
           </h2>
-          <p className="text-sm text-muted-foreground">
-            Extract knowledge from any reel
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Paste any Reel link to extract insights, summaries, and key
+            learnings
           </p>
         </div>
-      </div>
 
-      <div className="flex gap-2">
-        <div className="flex-1 relative">
-          <Input
-            value={url}
-            onChange={(e) => {
-              setUrl(e.target.value);
-              setError("");
-            }}
-            placeholder="https://instagram.com/reel/..."
-            className="pr-4"
-            disabled={isPending}
-          />
+        {/* Input Row */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1 relative">
+            <Input
+              value={url}
+              onChange={(e) => {
+                setUrl(e.target.value);
+                setError("");
+              }}
+              placeholder="https://instagram.com/reel/..."
+              className="h-11 text-base"
+              disabled={isPending}
+            />
+          </div>
+          <Button
+            type="submit"
+            disabled={isPending || !url.trim()}
+            className="h-11 px-6 font-medium"
+          >
+            <Zap className="w-4 h-4 mr-2" />
+            Analyze
+          </Button>
         </div>
-        <Button type="submit" disabled={isPending || !url.trim()}>
-          <Zap className="w-4 h-4 mr-2" />
-          Analyze with AI
-        </Button>
-      </div>
 
-      {error && (
-        <p className="text-xs text-destructive mt-2 animate-fade-in">{error}</p>
-      )}
+        {error && (
+          <p className="text-xs text-destructive mt-3 animate-fade-in flex items-center gap-1.5">
+            <span className="w-1 h-1 rounded-full bg-destructive" />
+            {error}
+          </p>
+        )}
+      </div>
     </form>
   );
 }

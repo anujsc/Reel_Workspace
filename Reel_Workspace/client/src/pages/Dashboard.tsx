@@ -174,8 +174,8 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="flex-1 lg:ml-60">
         {/* Header */}
-        <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border px-4 lg:px-6 py-3">
-          <div className="flex items-center gap-4 max-w-5xl mx-auto">
+        <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border px-4 lg:px-6 py-3">
+          <div className="flex items-center gap-4 max-w-6xl mx-auto">
             {/* Mobile menu button */}
             <Button
               variant="ghost"
@@ -196,11 +196,14 @@ export default function Dashboard() {
                 value={searchQuery}
                 onChange={handleSearchChange}
                 onKeyDown={handleSearchKeyDown}
-                placeholder="Search reels... (Press Enter)"
-                className="pl-10 pr-10"
+                placeholder="Search by topic, tag, or insight..."
+                className="pl-10 pr-16 h-9 text-sm bg-secondary/50 border-0 focus:bg-background"
               />
+              <kbd className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-xs font-medium text-muted-foreground bg-muted border border-border rounded">
+                ⏎
+              </kbd>
               {isSearching && (
-                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
+                <Loader2 className="absolute right-10 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground animate-spin" />
               )}
             </form>
 
@@ -212,88 +215,92 @@ export default function Dashboard() {
         </header>
 
         {/* Dashboard Content */}
-        <div className="p-4 lg:p-6 max-w-5xl mx-auto space-y-6">
-          {/* Paste Link Card */}
-          <PasteLinkCard />
-
-          {/* Folder Header */}
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-foreground">
-              {selectedFolderId === null
-                ? "All Reels"
-                : selectedFolderId === "uncategorized"
-                ? "Uncategorized"
-                : folders.find((f) => f.id === selectedFolderId)?.name ||
-                  "Folder"}
-            </h2>
-            <span className="text-sm text-muted-foreground">
-              {filteredReels.length}{" "}
-              {filteredReels.length === 1 ? "reel" : "reels"}
-            </span>
+        <div className="p-6 lg:p-8 max-w-6xl mx-auto space-y-8">
+          {/* Hero Action Card */}
+          <div className="max-w-3xl">
+            <PasteLinkCard />
           </div>
 
-          {/* Reel Grid (Bento Style) */}
+          {/* Section Header */}
+          <div className="flex items-baseline justify-between border-b border-border pb-3">
+            <div>
+              <h2 className="text-xl font-semibold text-foreground">
+                {selectedFolderId === null
+                  ? "All Knowledge"
+                  : selectedFolderId === "uncategorized"
+                  ? "Inbox"
+                  : folders.find((f) => f.id === selectedFolderId)?.name ||
+                    "Collection"}
+              </h2>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {filteredReels.length}{" "}
+                {filteredReels.length === 1 ? "item" : "items"}
+              </p>
+            </div>
+          </div>
+
+          {/* Knowledge Grid */}
           {isLoading ? (
             // Loading state with skeleton loaders
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {Array.from({ length: 6 }).map((_, index) => (
+            <div className="space-y-4">
+              {Array.from({ length: 4 }).map((_, index) => (
                 <ReelCardSkeleton key={index} />
               ))}
             </div>
           ) : error ? (
             // Error state
-            <div className="calm-card text-center py-12">
-              <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">
-                Failed to load reels
+            <div className="bg-card border border-border rounded-xl p-12 text-center">
+              <AlertCircle className="w-10 h-10 text-destructive mx-auto mb-3" />
+              <h3 className="text-base font-semibold mb-1.5">
+                Failed to load knowledge
               </h3>
-              <p className="text-muted-foreground mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 {error instanceof Error
                   ? error.message
                   : "Something went wrong"}
               </p>
-              <Button onClick={() => refetch()} variant="outline">
+              <Button onClick={() => refetch()} variant="outline" size="sm">
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Try Again
               </Button>
             </div>
           ) : filteredReels.length === 0 ? (
             // Empty state
-            <div className="calm-card text-center py-12">
-              <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+            <div className="bg-card border border-border rounded-xl p-12 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-secondary flex items-center justify-center">
                 <svg
-                  className="w-12 h-12 text-muted-foreground"
+                  className="w-8 h-8 text-muted-foreground"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
+                  strokeWidth={1.5}
                 >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth={2}
                     d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
                   />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold mb-2">
-                {searchQuery ? "No reels found" : "No reels yet"}
+              <h3 className="text-base font-semibold mb-1.5">
+                {searchQuery ? "No results found" : "No knowledge yet"}
               </h3>
-              <p className="text-muted-foreground">
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
                 {searchQuery
-                  ? "Try adjusting your search terms"
-                  : "Paste a link above to get started!"}
+                  ? "Try adjusting your search terms or filters"
+                  : "Start building your knowledge library by adding your first Reel above"}
               </p>
             </div>
           ) : (
-            // Reels grid
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            // Knowledge list (vertical cards)
+            <div className="space-y-3">
               {filteredReels.map((reel, index) => (
                 <div
                   key={reel.id}
                   className="animate-fade-in"
-                  style={{ animationDelay: `${index * 50}ms` }}
+                  style={{ animationDelay: `${index * 30}ms` }}
                 >
-                  <ReelCard reel={reel} />
+                  <ReelCard reel={reel} highlightQuery={searchQuery} />
                 </div>
               ))}
             </div>

@@ -71,58 +71,63 @@ export function Sidebar({
 
   return (
     <>
-      <aside className="w-60 h-screen flex flex-col fixed left-0 top-0 bg-[hsl(var(--sidebar-background))] border-r border-[hsl(var(--sidebar-border))] shadow-sm">
+      <aside className="w-60 h-screen flex flex-col fixed left-0 top-0 bg-[hsl(var(--sidebar-background))] border-r border-[hsl(var(--sidebar-border))]">
         {/* Logo */}
-        <div className="p-6 border-b border-[hsl(var(--sidebar-border))]">
-          <h1 className="text-xl font-bold text-foreground tracking-tight">
+        <div className="p-5 border-b border-[hsl(var(--sidebar-border))]">
+          <h1 className="text-lg font-semibold text-foreground tracking-tight">
             ReelMind
           </h1>
-          <p className="text-xs text-muted-foreground mt-1 font-medium">
-            Knowledge OS
-          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">Knowledge OS</p>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-auto p-2 space-y-1">
-          {/* All Reels */}
+        <nav className="flex-1 overflow-auto p-3 space-y-0.5">
+          {/* Library Section Header */}
+          <div className="px-3 py-2 mb-1">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Library
+            </p>
+          </div>
+
+          {/* All Knowledge */}
           <button
             onClick={() => onSelectFolder(null)}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all",
               selectedFolderId === null
-                ? "bg-secondary text-foreground font-medium"
-                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                ? "bg-secondary text-foreground font-medium shadow-sm"
+                : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
             )}
           >
-            <FileText className="w-4 h-4" />
-            <span className="flex-1 text-left">All Reels</span>
-            <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+            <FileText className="w-4 h-4 flex-shrink-0" />
+            <span className="flex-1 text-left">All Knowledge</span>
+            <span className="text-xs px-2 py-0.5 rounded-md bg-muted text-muted-foreground font-medium">
               {totalReels}
             </span>
           </button>
 
-          {/* Uncategorized */}
+          {/* Inbox */}
           <button
             onClick={() => onSelectFolder("uncategorized")}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all",
               selectedFolderId === "uncategorized"
-                ? "bg-secondary text-foreground font-medium"
-                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                ? "bg-secondary text-foreground font-medium shadow-sm"
+                : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
             )}
           >
-            <Inbox className="w-4 h-4" />
-            <span className="flex-1 text-left">Uncategorized</span>
-            <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+            <Inbox className="w-4 h-4 flex-shrink-0" />
+            <span className="flex-1 text-left">Inbox</span>
+            <span className="text-xs px-2 py-0.5 rounded-md bg-muted text-muted-foreground font-medium">
               {uncategorizedCount}
             </span>
           </button>
 
-          {/* Folders Section */}
-          <div className="pt-4">
+          {/* Collections Section */}
+          <div className="pt-5">
             <button
               onClick={() => setIsFoldersExpanded(!isFoldersExpanded)}
-              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide hover:text-foreground transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors"
             >
               <ChevronDown
                 className={cn(
@@ -130,28 +135,28 @@ export function Sidebar({
                   !isFoldersExpanded && "-rotate-90"
                 )}
               />
-              Folders
+              Collections
             </button>
 
             {isFoldersExpanded && (
-              <div className="mt-1 space-y-1">
+              <div className="mt-1 space-y-0.5">
                 {isLoading ? (
                   <div className="px-3 py-2 text-sm text-muted-foreground">
                     Loading...
                   </div>
                 ) : folders.length === 0 ? (
-                  <div className="px-3 py-2 text-sm text-muted-foreground">
-                    No folders yet
+                  <div className="px-3 py-2.5 text-sm text-muted-foreground">
+                    No collections yet
                   </div>
                 ) : (
                   folders.map((folder) => (
                     <div
                       key={folder.id}
                       className={cn(
-                        "group flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
+                        "group flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-all",
                         selectedFolderId === folder.id
-                          ? "bg-secondary text-foreground font-medium"
-                          : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                          ? "bg-secondary text-foreground font-medium shadow-sm"
+                          : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                       )}
                     >
                       <button
@@ -159,13 +164,13 @@ export function Sidebar({
                         className="flex items-center gap-3 flex-1 min-w-0"
                       >
                         <div
-                          className="w-3 h-3 rounded-full flex-shrink-0"
+                          className="w-2 h-2 rounded-full flex-shrink-0"
                           style={{ backgroundColor: folder.color }}
                         />
                         <span className="flex-1 text-left truncate">
                           {folder.name}
                         </span>
-                        <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded flex-shrink-0">
+                        <span className="text-xs px-2 py-0.5 rounded-md bg-muted text-muted-foreground font-medium flex-shrink-0">
                           {folder.reelCount}
                         </span>
                       </button>
@@ -202,13 +207,13 @@ export function Sidebar({
                   ))
                 )}
 
-                {/* Create New Folder Button */}
+                {/* Create New Collection Button */}
                 <button
                   onClick={() => setIsCreateModalOpen(true)}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-all"
                 >
-                  <FolderPlus className="w-4 h-4" />
-                  <span>New Folder</span>
+                  <FolderPlus className="w-4 h-4 flex-shrink-0" />
+                  <span>New Collection</span>
                 </button>
               </div>
             )}

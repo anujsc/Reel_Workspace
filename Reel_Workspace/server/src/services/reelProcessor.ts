@@ -3,11 +3,17 @@ import { downloadVideo, deleteFile } from "./videoDownloader.js";
 import { extractAudioToMp3, deleteAudioFile } from "./audioExtractor.js";
 import {
   generateAndUploadThumbnail,
+  uploadFramesToCloudinary,
   ThumbnailResult,
 } from "./thumbnailService.js";
 import { transcribeAudioWithGemini } from "./aiTranscript.js";
 import { summarizeWithGroq } from "./aiSummary.js";
-import { extractTextFromImage, OCRResult } from "./aiOCR.js";
+import { extractTextFromMultipleImages, OCRResult } from "./aiOCR.js";
+import {
+  extractMultipleFrames,
+  deleteFrames,
+  FrameExtractionResult,
+} from "./frameExtractor.js";
 import { ReelProcessingError } from "../utils/errors.js";
 
 /**
