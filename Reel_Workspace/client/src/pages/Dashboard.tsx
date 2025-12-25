@@ -175,7 +175,7 @@ export default function Dashboard() {
       <main className="flex-1 lg:ml-60">
         {/* Mobile Header - Only visible on mobile */}
         <header className="lg:hidden sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-border">
-          <div className="flex items-center h-[57px] px-4">
+          <div className="flex items-center h-[57px] px-4 gap-2">
             <Button
               variant="ghost"
               size="icon"
@@ -183,7 +183,8 @@ export default function Dashboard() {
             >
               <Menu className="w-5 h-5" />
             </Button>
-            <h1 className="ml-3 text-base font-semibold">ReelMind</h1>
+            <img src="/reelmind-icon.svg" alt="ReelMind" className="w-6 h-6" />
+            <h1 className="text-base font-semibold">ReelMind</h1>
           </div>
         </header>
 

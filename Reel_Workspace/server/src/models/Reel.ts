@@ -228,7 +228,14 @@ reelSchema.index({ userId: 1, createdAt: -1 });
 reelSchema.index({ userId: 1, folderId: 1 });
 reelSchema.index({ userId: 1, isDeleted: 1 });
 // Compound unique index: Each user can have their own copy of the same reel URL
-reelSchema.index({ userId: 1, sourceUrl: 1 }, { unique: true });
+// Partial index only enforces uniqueness on non-deleted reels
+reelSchema.index(
+  { userId: 1, sourceUrl: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { isDeleted: false },
+  }
+);
 
 // Text search index for search functionality
 reelSchema.index({

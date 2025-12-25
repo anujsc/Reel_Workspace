@@ -109,6 +109,7 @@ function generateThumbnailFilename(): string {
 
 /**
  * Capture frame from video at specific timestamp
+ * Uses 9:16 aspect ratio to match mobile/reel format
  */
 function captureFrame(
   videoPath: string,
@@ -121,10 +122,12 @@ function captureFrame(
         timestamps: [timestamp],
         filename: path.basename(outputPath),
         folder: path.dirname(outputPath),
-        size: "1280x720",
+        size: "720x1280", // 9:16 aspect ratio for mobile/reel format
       })
       .on("end", () => {
-        console.log(`[Thumbnail Service] Frame captured at ${timestamp}s`);
+        console.log(
+          `[Thumbnail Service] Frame captured at ${timestamp}s (9:16 ratio)`
+        );
         resolve();
       })
       .on("error", (err) => {
@@ -135,13 +138,13 @@ function captureFrame(
 }
 
 /**
- * Upload thumbnail to Cloudinary
+ * Upload thumbnail to Cloudinary with 9:16 aspect ratio
  */
 async function uploadToCloudinary(
   filePath: string
 ): Promise<{ url: string; publicId: string }> {
   try {
-    console.log(`[Thumbnail Service] Uploading to Cloudinary...`);
+    console.log(`[Thumbnail Service] Uploading to Cloudinary (9:16 format)...`);
 
     const result = await cloudinary.uploader.upload(filePath, {
       folder: CLOUDINARY_FOLDER,
@@ -149,7 +152,7 @@ async function uploadToCloudinary(
       format: "jpg",
       quality: 80,
       transformation: [
-        { width: 1280, height: 720, crop: "limit" },
+        { width: 720, height: 1280, crop: "limit" }, // 9:16 mobile ratio
         { quality: "auto:good" },
       ],
     });

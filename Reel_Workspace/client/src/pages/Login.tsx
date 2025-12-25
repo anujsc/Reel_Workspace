@@ -84,10 +84,8 @@ export default function Login() {
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background">
       {/* Logo */}
       <div className="mb-8 animate-slide-up">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center glow">
-            <Brain className="w-7 h-7 text-primary" />
-          </div>
+        <div className="flex items-center justify-center gap-3 mb-2">
+          <img src="/reelmind-icon.svg" alt="ReelMind" className="w-12 h-12" />
           <h1 className="text-3xl font-bold text-gradient">ReelMind</h1>
         </div>
         <p className="text-muted-foreground text-center">

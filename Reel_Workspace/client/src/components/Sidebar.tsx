@@ -82,11 +82,20 @@ export function Sidebar({
     <>
       <aside className="w-60 h-screen flex flex-col fixed left-0 top-0 bg-[hsl(var(--sidebar-background))] border-r border-[hsl(var(--sidebar-border))]">
         {/* Logo - Height matches header */}
-        <div className="px-5 h-[57px] flex flex-col justify-center border-b border-[hsl(var(--sidebar-border))]">
-          <h1 className="text-lg font-semibold text-foreground tracking-tight">
-            ReelMind
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Knowledge OS</p>
+        <div className="px-5 h-[57px] flex items-center gap-2 border-b border-[hsl(var(--sidebar-border))]">
+          <img
+            src="/reelmind-icon.svg"
+            alt="ReelMind"
+            className="w-8 h-8 flex-shrink-0"
+          />
+          <div className="flex flex-col">
+            <h1 className="text-lg font-semibold text-foreground tracking-tight leading-tight">
+              ReelMind
+            </h1>
+            <p className="text-xs text-muted-foreground leading-tight">
+              Knowledge OS
+            </p>
+          </div>
         </div>
 
         {/* Navigation */}
