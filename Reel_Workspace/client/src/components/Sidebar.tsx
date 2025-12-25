@@ -81,8 +81,8 @@ export function Sidebar({
   return (
     <>
       <aside className="w-60 h-screen flex flex-col fixed left-0 top-0 bg-[hsl(var(--sidebar-background))] border-r border-[hsl(var(--sidebar-border))]">
-        {/* Logo */}
-        <div className="p-5 border-b border-[hsl(var(--sidebar-border))]">
+        {/* Logo - Height matches header */}
+        <div className="px-5 h-[57px] flex flex-col justify-center border-b border-[hsl(var(--sidebar-border))]">
           <h1 className="text-lg font-semibold text-foreground tracking-tight">
             ReelMind
           </h1>
@@ -235,15 +235,14 @@ export function Sidebar({
         </nav>
 
         {/* Footer - User Profile & Logout */}
-        <div className="p-3 border-t border-border">
+        <div className="p-3 border-t border-[hsl(var(--sidebar-border))]">
           <Button
             variant="ghost"
-            size="sm"
             onClick={handleLogout}
-            className="w-full justify-start text-muted-foreground hover:text-foreground"
+            className="w-full justify-start gap-2 h-10 text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-all"
           >
-            <LogOut className="w-4 h-4 mr-2" />
-            Sign Out
+            <LogOut className="w-4 h-4" />
+            <span className="font-medium">Sign Out</span>
           </Button>
         </div>
       </aside>

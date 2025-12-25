@@ -173,51 +173,43 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="flex-1 lg:ml-60">
-        {/* Header */}
-        <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border px-4 lg:px-6 py-3">
-          <div className="flex items-center gap-4 max-w-6xl mx-auto">
-            {/* Mobile menu button */}
+        {/* Mobile Header - Only visible on mobile */}
+        <header className="lg:hidden sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-border">
+          <div className="flex items-center h-[57px] px-4">
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden"
               onClick={() => setIsMobileSidebarOpen(true)}
             >
               <Menu className="w-5 h-5" />
             </Button>
+            <h1 className="ml-3 text-base font-semibold">ReelMind</h1>
+          </div>
+        </header>
 
-            {/* Search */}
-            <form
-              onSubmit={handleSearchSubmit}
-              className="flex-1 relative max-w-md"
-            >
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        {/* Dashboard Content */}
+        <div className="p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
+          {/* Hero Section - Search + Add Knowledge */}
+          <div className="space-y-4">
+            {/* Search Bar */}
+            <form onSubmit={handleSearchSubmit} className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 value={searchQuery}
                 onChange={handleSearchChange}
                 onKeyDown={handleSearchKeyDown}
                 placeholder="Search by topic, tag, or insight..."
-                className="pl-10 pr-16 h-9 text-sm bg-secondary/50 border-0 focus:bg-background"
+                className="pl-12 pr-16 h-12 text-base bg-background border-border shadow-sm focus:shadow-md transition-all"
               />
-              <kbd className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-xs font-medium text-muted-foreground bg-muted border border-border rounded">
+              <kbd className="absolute right-4 top-1/2 -translate-y-1/2 px-2 py-1 text-xs font-medium text-muted-foreground bg-muted border border-border rounded">
                 ⏎
               </kbd>
               {isSearching && (
-                <Loader2 className="absolute right-10 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground animate-spin" />
+                <Loader2 className="absolute right-12 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
               )}
             </form>
 
-            {/* Logout */}
-            <Button variant="ghost" size="icon" onClick={handleLogout}>
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </div>
-        </header>
-
-        {/* Dashboard Content */}
-        <div className="p-6 lg:p-8 max-w-6xl mx-auto space-y-8">
-          {/* Hero Action Card */}
-          <div className="max-w-3xl">
+            {/* Add Knowledge Card */}
             <PasteLinkCard />
           </div>
 

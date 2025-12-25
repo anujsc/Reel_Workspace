@@ -131,7 +131,6 @@ const reelSchema = new Schema<IReel>(
     sourceUrl: {
       type: String,
       required: [true, "Source URL is required"],
-      unique: true,
       index: true,
     },
     videoUrl: {
@@ -228,6 +227,8 @@ const reelSchema = new Schema<IReel>(
 reelSchema.index({ userId: 1, createdAt: -1 });
 reelSchema.index({ userId: 1, folderId: 1 });
 reelSchema.index({ userId: 1, isDeleted: 1 });
+// Compound unique index: Each user can have their own copy of the same reel URL
+reelSchema.index({ userId: 1, sourceUrl: 1 }, { unique: true });
 
 // Text search index for search functionality
 reelSchema.index({
