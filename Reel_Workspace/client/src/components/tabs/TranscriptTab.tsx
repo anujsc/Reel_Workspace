@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Reel } from "../../lib/types";
 import { Button } from "@/components/ui/button";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { copyToClipboard } from "../../utils/clipboard";
 
@@ -24,25 +24,35 @@ export function TranscriptTab({ reel }: TranscriptTabProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Full Transcript</h3>
-        <Button variant="outline" size="sm" onClick={handleCopy}>
+        <h3 className="text-xl font-bold flex items-center gap-2.5 text-foreground">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <FileText className="w-5 h-5 text-primary" />
+          </div>
+          Full Transcript
+        </h3>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleCopy}
+          className="gap-2 hover:bg-muted/80 border-border/60"
+        >
           {copied ? (
             <>
-              <Check className="w-4 h-4 mr-2" />
+              <Check className="w-4 h-4" />
               Copied!
             </>
           ) : (
             <>
-              <Copy className="w-4 h-4 mr-2" />
+              <Copy className="w-4 h-4" />
               Copy
             </>
           )}
         </Button>
       </div>
-      <div className="calm-card">
-        <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
+      <div className="p-6 rounded-xl bg-gradient-to-br from-muted/30 to-muted/10 border border-border/40 min-h-[300px]">
+        <p className="text-foreground/90 whitespace-pre-wrap leading-relaxed text-base">
           {reel.transcript || "No transcript available"}
         </p>
       </div>

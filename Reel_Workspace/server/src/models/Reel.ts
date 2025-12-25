@@ -10,28 +10,11 @@ export interface IQuizQuestion {
 }
 
 /**
- * Quick Reference Card interface
- */
-export interface IQuickReferenceCard {
-  facts: string[];
-  definitions: string[];
-  formulas: string[];
-}
-
-/**
  * Common Pitfall interface
  */
 export interface ICommonPitfall {
   pitfall: string;
   solution: string;
-}
-
-/**
- * Glossary Term interface
- */
-export interface IGlossaryTerm {
-  term: string;
-  definition: string;
 }
 
 /**
@@ -52,10 +35,8 @@ export interface IReel extends Document {
   relatedTopics: string[];
   actionableChecklist: string[];
   quizQuestions: IQuizQuestion[];
-  quickReferenceCard: IQuickReferenceCard;
   learningPath: string[];
   commonPitfalls: ICommonPitfall[];
-  glossary: IGlossaryTerm[];
   interactivePromptSuggestions: string[];
   tags: string[];
   ocrText: string;
@@ -78,35 +59,12 @@ const quizQuestionSchema = new Schema<IQuizQuestion>(
 );
 
 /**
- * Quick Reference Card Schema
- */
-const quickReferenceCardSchema = new Schema<IQuickReferenceCard>(
-  {
-    facts: { type: [String], default: [] },
-    definitions: { type: [String], default: [] },
-    formulas: { type: [String], default: [] },
-  },
-  { _id: false }
-);
-
-/**
  * Common Pitfall Schema
  */
 const commonPitfallSchema = new Schema<ICommonPitfall>(
   {
     pitfall: { type: String, required: true },
     solution: { type: String, required: true },
-  },
-  { _id: false }
-);
-
-/**
- * Glossary Term Schema
- */
-const glossaryTermSchema = new Schema<IGlossaryTerm>(
-  {
-    term: { type: String, required: true },
-    definition: { type: String, required: true },
   },
   { _id: false }
 );
@@ -179,20 +137,12 @@ const reelSchema = new Schema<IReel>(
       type: [quizQuestionSchema],
       default: [],
     },
-    quickReferenceCard: {
-      type: quickReferenceCardSchema,
-      default: () => ({ facts: [], definitions: [], formulas: [] }),
-    },
     learningPath: {
       type: [String],
       default: [],
     },
     commonPitfalls: {
       type: [commonPitfallSchema],
-      default: [],
-    },
-    glossary: {
-      type: [glossaryTermSchema],
       default: [],
     },
     interactivePromptSuggestions: {

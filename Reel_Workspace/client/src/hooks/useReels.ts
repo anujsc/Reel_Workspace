@@ -57,15 +57,8 @@ export const useReels = (params: UseReelsParams = {}) => {
             typeof q.answer === "string" ? 0 : q.correctAnswer || 0,
           explanation: q.explanation || q.answer || "",
         })),
-        quickReferenceCard: reel.quickReferenceCard?.facts
-          ? reel.quickReferenceCard.facts.map((fact: string) => ({
-              title: "Fact",
-              content: fact,
-            }))
-          : [],
         learningPath: reel.learningPath || [],
         commonPitfalls: reel.commonPitfalls || [],
-        glossary: reel.glossary || [],
         interactivePromptSuggestions: reel.interactivePromptSuggestions || [],
         keyPoints: reel.keyPoints || [],
         examples: reel.examples || [],

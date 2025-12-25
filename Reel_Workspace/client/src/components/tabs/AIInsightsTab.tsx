@@ -24,84 +24,82 @@ export function AIInsightsTab({ reel }: AIInsightsTabProps) {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Summary */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Lightbulb className="w-5 h-5" />
+    <div className="space-y-8">
+      {/* Summary - Enhanced Card */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-bold flex items-center gap-2.5 text-foreground">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Lightbulb className="w-5 h-5 text-primary" />
+            </div>
             Summary
           </h3>
-          <Button variant="outline" size="sm" onClick={handleCopySummary}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCopySummary}
+            className="gap-2 hover:bg-muted/80 border-border/60"
+          >
             {copied ? (
               <>
-                <Check className="w-4 h-4 mr-2" />
+                <Check className="w-4 h-4" />
                 Copied!
               </>
             ) : (
               <>
-                <Copy className="w-4 h-4 mr-2" />
+                <Copy className="w-4 h-4" />
                 Copy
               </>
             )}
           </Button>
         </div>
-        <p className="text-muted-foreground whitespace-pre-wrap">
-          {reel.summary}
-        </p>
+        <div className="p-5 rounded-xl bg-gradient-to-br from-muted/30 to-muted/10 border border-border/40">
+          <p className="text-foreground/90 whitespace-pre-wrap leading-relaxed text-base">
+            {reel.summary}
+          </p>
+        </div>
       </div>
 
-      {/* Key Points */}
+      {/* Key Points - Enhanced List */}
       {reel.keyPoints && reel.keyPoints.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-3">Key Points</h3>
-          <ul className="space-y-2">
+        <div className="space-y-4">
+          <h3 className="text-xl font-bold text-foreground">Key Points</h3>
+          <ul className="space-y-3">
             {reel.keyPoints.map((point, index) => (
-              <li key={index} className="flex items-start gap-2">
+              <li
+                key={index}
+                className="flex items-start gap-3 p-4 rounded-xl bg-muted/30 border border-border/40 hover:border-primary/30 transition-colors"
+              >
                 <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                <span className="text-muted-foreground">{point}</span>
+                <span className="text-foreground/90 leading-relaxed">
+                  {point}
+                </span>
               </li>
             ))}
           </ul>
         </div>
       )}
 
-      {/* Actionable Checklist */}
+      {/* Actionable Checklist - Enhanced Interactive */}
       {reel.actionableChecklist && reel.actionableChecklist.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-3">Actionable Checklist</h3>
-          <div className="space-y-2">
+        <div className="space-y-4">
+          <h3 className="text-xl font-bold text-foreground">
+            Actionable Checklist
+          </h3>
+          <div className="space-y-2.5">
             {reel.actionableChecklist.map((item, index) => (
               <label
                 key={index}
-                className="flex items-start gap-3 cursor-pointer"
+                className="flex items-start gap-3.5 p-4 rounded-xl bg-muted/20 border border-border/40 hover:bg-muted/40 hover:border-primary/30 cursor-pointer transition-all group"
               >
                 <input
                   type="checkbox"
-                  className="mt-1 w-4 h-4 rounded border-gray-300"
+                  className="mt-0.5 w-5 h-5 rounded-md border-2 border-border text-primary focus:ring-2 focus:ring-primary/50 cursor-pointer transition-all"
                 />
-                <span className="text-muted-foreground">{item}</span>
+                <span className="text-foreground/90 leading-relaxed group-hover:text-foreground transition-colors">
+                  {item}
+                </span>
               </label>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Quick Reference Cards */}
-      {reel.quickReferenceCard && reel.quickReferenceCard.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-3">Quick Reference</h3>
-          <div className="grid gap-3">
-            {reel.quickReferenceCard.map((card, index) => (
-              <div key={index} className="calm-card">
-                <h4 className="font-semibold mb-2">{card.title}</h4>
-                <p className="text-sm text-muted-foreground">{card.content}</p>
-                {card.category && (
-                  <span className="inline-block mt-2 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700">
-                    {card.category}
-                  </span>
-                )}
-              </div>
             ))}
           </div>
         </div>

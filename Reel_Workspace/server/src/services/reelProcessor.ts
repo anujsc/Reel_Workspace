@@ -36,19 +36,10 @@ export interface ReelProcessingResult {
     options: string[];
     answer: string;
   }>;
-  quickReferenceCard: {
-    facts: string[];
-    definitions: string[];
-    formulas: string[];
-  };
   learningPath: string[];
   commonPitfalls: Array<{
     pitfall: string;
     solution: string;
-  }>;
-  glossary: Array<{
-    term: string;
-    definition: string;
   }>;
   interactivePromptSuggestions: string[];
   tags: string[];
@@ -229,10 +220,8 @@ export async function processReel(
       relatedTopics: summaryResult.relatedTopics,
       actionableChecklist: summaryResult.actionableChecklist,
       quizQuestions: summaryResult.quizQuestions,
-      quickReferenceCard: summaryResult.quickReferenceCard,
       learningPath: summaryResult.learningPath,
       commonPitfalls: summaryResult.commonPitfalls,
-      glossary: summaryResult.glossary,
       interactivePromptSuggestions: summaryResult.interactivePromptSuggestions,
       tags: summaryResult.tags,
       suggestedFolder: summaryResult.suggestedFolder,

@@ -29,22 +29,11 @@ export const useReel = (id: string | undefined) => {
             typeof q.answer === "string" ? 0 : q.correctAnswer || 0,
           explanation: q.explanation || q.answer || "",
         })),
-        quickReferenceCard: reel.quickReferenceCard?.facts
-          ? reel.quickReferenceCard.facts.map((fact: string) => ({
-              title: "Fact",
-              content: fact,
-            }))
-          : [],
         learningPath: reel.learningPath || [],
         commonPitfalls: (reel.commonPitfalls || []).map((p: any) => ({
           pitfall: p.pitfall,
           solution: p.solution,
           severity: p.severity,
-        })),
-        glossary: (reel.glossary || []).map((g: any) => ({
-          term: g.term,
-          definition: g.definition,
-          relatedTerms: g.relatedTerms,
         })),
         interactivePromptSuggestions: reel.interactivePromptSuggestions || [],
         keyPoints: reel.keyPoints || [],

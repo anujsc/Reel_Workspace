@@ -3,53 +3,55 @@ import { Reel } from "../lib/types";
 import { AIInsightsTab } from "./tabs/AIInsightsTab";
 import { TranscriptTab } from "./tabs/TranscriptTab";
 import { LearnQuizTab } from "./tabs/LearnQuizTab";
-import { OCRTab } from "./tabs/OCRTab";
 import { cn } from "@/lib/utils";
+import { Sparkles, FileText, GraduationCap } from "lucide-react";
 
 interface ReelKnowledgeProps {
   reel: Reel;
 }
 
-type TabType = "insights" | "transcript" | "learn" | "ocr";
+type TabType = "insights" | "learn" | "transcript";
 
 export function ReelKnowledge({ reel }: ReelKnowledgeProps) {
   const [activeTab, setActiveTab] = useState<TabType>("insights");
 
   const tabs = [
-    { id: "insights" as TabType, label: "AI Insights" },
-    { id: "transcript" as TabType, label: "Transcript" },
-    { id: "learn" as TabType, label: "Learn & Quiz" },
-    { id: "ocr" as TabType, label: "OCR & Visuals" },
+    { id: "insights" as TabType, label: "AI Insights", icon: Sparkles },
+    { id: "learn" as TabType, label: "Learn & Quiz", icon: GraduationCap },
+    { id: "transcript" as TabType, label: "Transcript", icon: FileText },
   ];
 
   return (
-    <div className="space-y-4">
-      {/* Tabs */}
-      <div className="border-b border-border">
-        <div className="flex gap-1 overflow-x-auto">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                "px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors border-b-2",
-                activeTab === tab.id
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
+    <div className="h-full flex flex-col">
+      {/* Enhanced Tabs with Icons */}
+      <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="flex gap-1 overflow-x-auto hide-scrollbar px-1">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "flex items-center gap-2 px-5 py-3 text-sm font-medium whitespace-nowrap transition-all duration-200 border-b-2 rounded-t-lg",
+                  activeTab === tab.id
+                    ? "border-primary text-primary bg-primary/5"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Tab Content */}
-      <div className="py-4">
+      {/* Tab Content with Animation */}
+      <div className="flex-1 py-6 animate-fade-in">
         {activeTab === "insights" && <AIInsightsTab reel={reel} />}
-        {activeTab === "transcript" && <TranscriptTab reel={reel} />}
         {activeTab === "learn" && <LearnQuizTab reel={reel} />}
-        {activeTab === "ocr" && <OCRTab reel={reel} />}
+        {activeTab === "transcript" && <TranscriptTab reel={reel} />}
       </div>
     </div>
   );

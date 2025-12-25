@@ -11,22 +11,10 @@ export interface QuizQuestion {
   explanation: string;
 }
 
-export interface QuickReferenceCard {
-  title: string;
-  content: string;
-  category?: string;
-}
-
 export interface CommonPitfall {
   pitfall: string;
   solution: string;
   severity?: "low" | "medium" | "high";
-}
-
-export interface GlossaryTerm {
-  term: string;
-  definition: string;
-  relatedTerms?: string[];
 }
 
 export interface Reel {
@@ -47,10 +35,8 @@ export interface Reel {
   timings: Record<string, any>;
   actionableChecklist: string[];
   quizQuestions: QuizQuestion[];
-  quickReferenceCard: QuickReferenceCard[];
   learningPath: string[];
   commonPitfalls: CommonPitfall[];
-  glossary: GlossaryTerm[];
   interactivePromptSuggestions: string[];
   keyPoints: string[];
   examples: string[];

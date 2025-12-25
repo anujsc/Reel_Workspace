@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Reel } from "../../lib/types";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, BookOpen, Copy, Check, Lightbulb } from "lucide-react";
+import { AlertTriangle, Copy, Check, Lightbulb } from "lucide-react";
 import { copyToClipboard } from "../../utils/clipboard";
 import { toast } from "sonner";
 
@@ -48,25 +48,35 @@ export function LearnQuizTab({ reel }: LearnQuizTabProps) {
   const totalQuestions = reel.quizQuestions?.length || 0;
 
   return (
-    <div className="space-y-6">
-      {/* Quiz Questions */}
+    <div className="space-y-8">
+      {/* Quiz Questions - Enhanced */}
       {reel.quizQuestions && reel.quizQuestions.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">Quiz Questions</h3>
+        <div className="space-y-5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-bold text-foreground">
+              Quiz Questions
+            </h3>
             {showResults && (
-              <Button variant="outline" size="sm" onClick={resetQuiz}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={resetQuiz}
+                className="gap-2 hover:bg-muted/80 border-border/60"
+              >
                 Reset Quiz
               </Button>
             )}
           </div>
-          <div className="space-y-4">
+          <div className="space-y-5">
             {reel.quizQuestions.map((question, qIndex) => (
-              <div key={qIndex} className="calm-card">
-                <p className="font-semibold mb-3">
+              <div
+                key={qIndex}
+                className="p-5 rounded-xl bg-card border border-border/50 hover:border-border transition-all"
+              >
+                <p className="font-bold text-lg mb-4 text-foreground">
                   {qIndex + 1}. {question.question}
                 </p>
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   {question.options.map((option, oIndex) => {
                     const isSelected = selectedAnswers[qIndex] === oIndex;
                     const isCorrect = question.correctAnswer === oIndex;
@@ -80,14 +90,14 @@ export function LearnQuizTab({ reel }: LearnQuizTabProps) {
                           !showResults && handleAnswerSelect(qIndex, oIndex)
                         }
                         disabled={showResults}
-                        className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                        className={`w-full text-left p-4 rounded-xl border-2 transition-all font-medium ${
                           showCorrect
-                            ? "border-green-500 bg-green-50"
+                            ? "border-green-500 bg-green-50 dark:bg-green-950/30 text-green-900 dark:text-green-100"
                             : showWrong
-                            ? "border-red-500 bg-red-50"
+                            ? "border-red-500 bg-red-50 dark:bg-red-950/30 text-red-900 dark:text-red-100"
                             : isSelected
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/50"
+                            ? "border-primary bg-primary/10 text-foreground shadow-sm"
+                            : "border-border/60 hover:border-primary/50 hover:bg-muted/30 text-foreground/80"
                         }`}
                       >
                         {option}
@@ -96,9 +106,10 @@ export function LearnQuizTab({ reel }: LearnQuizTabProps) {
                   })}
                 </div>
                 {showResults && (
-                  <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-blue-900">
-                      <strong>Explanation:</strong> {question.explanation}
+                  <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-xl border border-blue-200 dark:border-blue-800">
+                    <p className="text-sm text-blue-900 dark:text-blue-100 leading-relaxed">
+                      <strong className="font-bold">Explanation:</strong>{" "}
+                      {question.explanation}
                     </p>
                   </div>
                 )}
@@ -108,16 +119,19 @@ export function LearnQuizTab({ reel }: LearnQuizTabProps) {
           {!showResults &&
             Object.keys(selectedAnswers).length ===
               reel.quizQuestions.length && (
-              <Button onClick={handleSubmit} className="w-full mt-4">
+              <Button
+                onClick={handleSubmit}
+                className="w-full h-12 text-base font-semibold shadow-sm hover:shadow transition-all"
+              >
                 Submit Quiz
               </Button>
             )}
           {showResults && totalQuestions > 0 && (
-            <div className="mt-4 p-4 bg-blue-50 rounded-lg text-center">
-              <p className="text-lg font-semibold text-blue-900">
+            <div className="mt-5 p-6 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-800 text-center">
+              <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
                 Score: {correctAnswers}/{totalQuestions} correct
               </p>
-              <p className="text-sm text-blue-700 mt-1">
+              <p className="text-base text-blue-700 dark:text-blue-300 mt-2 font-medium">
                 {correctAnswers === totalQuestions
                   ? "Perfect score! 🎉"
                   : correctAnswers >= totalQuestions / 2
@@ -129,69 +143,44 @@ export function LearnQuizTab({ reel }: LearnQuizTabProps) {
         </div>
       )}
 
-      {/* Glossary */}
-      {reel.glossary && reel.glossary.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <BookOpen className="w-5 h-5" />
-            Glossary
-          </h3>
-          <div className="space-y-3">
-            {reel.glossary.map((term, index) => (
-              <div key={index} className="calm-card">
-                <h4 className="font-semibold mb-1">{term.term}</h4>
-                <p className="text-sm text-muted-foreground">
-                  {term.definition}
-                </p>
-                {term.relatedTerms && term.relatedTerms.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {term.relatedTerms.map((related, i) => (
-                      <span
-                        key={i}
-                        className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700"
-                      >
-                        {related}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Common Pitfalls */}
+      {/* Common Pitfalls - Enhanced */}
       {reel.commonPitfalls && reel.commonPitfalls.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5" />
+        <div className="space-y-4">
+          <h3 className="text-xl font-bold flex items-center gap-2.5 text-foreground">
+            <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-950/30">
+              <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+            </div>
             Common Pitfalls
           </h3>
           <div className="space-y-3">
             {reel.commonPitfalls.map((pitfall, index) => (
               <div
                 key={index}
-                className="calm-card border-l-4 border-orange-500"
+                className="p-5 rounded-xl bg-card border-l-4 border-orange-500 shadow-sm hover:shadow-md transition-all"
               >
-                <div className="flex items-start gap-2 mb-2">
+                <div className="flex items-start gap-3 mb-3">
                   {pitfall.severity && (
                     <span
-                      className={`text-xs px-2 py-1 rounded-full ${
+                      className={`text-xs px-3 py-1.5 rounded-full font-bold uppercase tracking-wide ${
                         pitfall.severity === "high"
-                          ? "bg-red-100 text-red-700"
+                          ? "bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400"
                           : pitfall.severity === "medium"
-                          ? "bg-orange-100 text-orange-700"
-                          : "bg-yellow-100 text-yellow-700"
+                          ? "bg-orange-100 text-orange-700 dark:bg-orange-950/30 dark:text-orange-400"
+                          : "bg-yellow-100 text-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-400"
                       }`}
                     >
                       {pitfall.severity}
                     </span>
                   )}
                 </div>
-                <p className="font-semibold mb-2">⚠️ {pitfall.pitfall}</p>
-                <p className="text-sm text-muted-foreground">
-                  <strong>Solution:</strong> {pitfall.solution}
+                <p className="font-bold text-lg mb-3 text-foreground">
+                  ⚠️ {pitfall.pitfall}
+                </p>
+                <p className="text-base text-foreground/80 leading-relaxed">
+                  <strong className="font-bold text-foreground">
+                    Solution:
+                  </strong>{" "}
+                  {pitfall.solution}
                 </p>
               </div>
             ))}
@@ -199,28 +188,30 @@ export function LearnQuizTab({ reel }: LearnQuizTabProps) {
         </div>
       )}
 
-      {/* Interactive Prompt Suggestions */}
+      {/* Interactive Prompt Suggestions - Enhanced */}
       {reel.interactivePromptSuggestions &&
         reel.interactivePromptSuggestions.length > 0 && (
-          <div>
-            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-              <Lightbulb className="w-5 h-5" />
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold flex items-center gap-2.5 text-foreground">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Lightbulb className="w-5 h-5 text-primary" />
+              </div>
               AI Prompt Suggestions
             </h3>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {reel.interactivePromptSuggestions.map((prompt, index) => (
                 <div
                   key={index}
-                  className="flex items-start gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200"
+                  className="flex items-start gap-3 p-4 bg-muted/50 rounded-xl border border-border/60 hover:border-primary/30 hover:bg-muted/70 transition-all group"
                 >
-                  <code className="flex-1 text-sm text-gray-800 break-words">
+                  <code className="flex-1 text-sm text-foreground/90 break-words font-mono leading-relaxed">
                     {prompt}
                   </code>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => handleCopyPrompt(prompt, index)}
-                    className="flex-shrink-0"
+                    className="flex-shrink-0 hover:bg-background"
                   >
                     {copiedPrompt === index ? (
                       <Check className="w-4 h-4 text-green-600" />

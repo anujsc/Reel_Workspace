@@ -60,28 +60,30 @@ export default function ReelDetail() {
   console.log("ReelDetail - Rendering with reel:", reel.id, reel.title);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-3 flex items-center justify-between">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      {/* Enhanced Header with Glassmorphism */}
+      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-sm">
+        <div className="max-w-[1600px] mx-auto px-4 lg:px-8 py-4 flex items-center justify-between">
           {/* Back Button */}
           <Button
             variant="ghost"
             onClick={() => navigate("/dashboard")}
-            className="gap-2 hover:bg-gray-100"
+            className="gap-2 hover:bg-muted/80 transition-all"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Back to Dashboard</span>
-            <span className="sm:hidden">Back</span>
+            <span className="hidden sm:inline font-medium">
+              Back to Dashboard
+            </span>
+            <span className="sm:hidden font-medium">Back</span>
           </Button>
 
           {/* Action Buttons - Desktop */}
-          <div className="hidden md:flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-3">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsEditModalOpen(true)}
-              className="gap-2 hover:bg-gray-50"
+              className="gap-2 hover:bg-muted/80 border-border/60 transition-all"
             >
               <Edit2 className="w-4 h-4" />
               Edit Title
@@ -90,7 +92,7 @@ export default function ReelDetail() {
               variant="destructive"
               size="sm"
               onClick={() => setIsDeleteDialogOpen(true)}
-              className="gap-2"
+              className="gap-2 shadow-sm hover:shadow transition-all"
             >
               <Trash2 className="w-4 h-4" />
               Delete
@@ -104,7 +106,7 @@ export default function ReelDetail() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-10 w-10 hover:bg-gray-100"
+                  className="h-10 w-10 hover:bg-muted/80"
                 >
                   <MoreVertical className="w-5 h-5" />
                   <span className="sr-only">Open menu</span>
@@ -132,17 +134,21 @@ export default function ReelDetail() {
         </div>
       </div>
 
-      {/* Split Screen Layout */}
-      <div className="max-w-7xl mx-auto p-4 lg:p-6">
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Left Column - Source Info (30% on desktop) */}
-          <div className="w-full lg:w-[30%]">
-            <ReelSource reel={reel} />
+      {/* Enhanced Split Screen Layout - Full Width */}
+      <div className="max-w-[1600px] mx-auto px-4 lg:px-8 py-6 lg:py-8">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+          {/* Left Column - Source Info (28% on desktop) */}
+          <div className="w-full lg:w-[28%] lg:sticky lg:top-24 lg:self-start">
+            <div className="calm-card shadow-lg border-border/60 hover:shadow-xl transition-shadow duration-300">
+              <ReelSource reel={reel} />
+            </div>
           </div>
 
-          {/* Right Column - Knowledge Tabs (70% on desktop) */}
-          <div className="w-full lg:w-[70%]">
-            <ReelKnowledge reel={reel} />
+          {/* Right Column - Knowledge Tabs (72% on desktop) */}
+          <div className="w-full lg:w-[72%] flex flex-col">
+            <div className="calm-card shadow-lg border-border/60 min-h-[600px] flex flex-col">
+              <ReelKnowledge reel={reel} />
+            </div>
           </div>
         </div>
       </div>

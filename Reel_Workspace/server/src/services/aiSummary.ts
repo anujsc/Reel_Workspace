@@ -11,28 +11,11 @@ export interface QuizQuestion {
 }
 
 /**
- * Quick reference card structure
- */
-export interface QuickReferenceCard {
-  facts: string[];
-  definitions: string[];
-  formulas: string[];
-}
-
-/**
  * Common pitfall structure
  */
 export interface CommonPitfall {
   pitfall: string;
   solution: string;
-}
-
-/**
- * Glossary term structure
- */
-export interface GlossaryTerm {
-  term: string;
-  definition: string;
 }
 
 /**
@@ -47,10 +30,8 @@ export interface SummaryResult {
   relatedTopics: string[];
   actionableChecklist: string[];
   quizQuestions: QuizQuestion[];
-  quickReferenceCard: QuickReferenceCard;
   learningPath: string[];
   commonPitfalls: CommonPitfall[];
-  glossary: GlossaryTerm[];
   interactivePromptSuggestions: string[];
   tags: string[];
   suggestedFolder: string;
@@ -69,10 +50,8 @@ interface GroqSummaryResponse {
   relatedTopics: string[];
   actionableChecklist: string[];
   quizQuestions: QuizQuestion[];
-  quickReferenceCard: QuickReferenceCard;
   learningPath: string[];
   commonPitfalls: CommonPitfall[];
-  glossary: GlossaryTerm[];
   interactivePromptSuggestions: string[];
   tags: string[];
   folder: string;
@@ -126,23 +105,10 @@ function parseGroqResponse(responseText: string): GroqSummaryResponse {
       answer: String(q?.answer || ""),
     }));
 
-    // Validate quick reference card
-    const quickReferenceCard = {
-      facts: ensureArray(parsed.quickReferenceCard?.facts),
-      definitions: ensureArray(parsed.quickReferenceCard?.definitions),
-      formulas: ensureArray(parsed.quickReferenceCard?.formulas),
-    };
-
     // Validate common pitfalls
     const commonPitfalls = ensureArray(parsed.commonPitfalls).map((p: any) => ({
       pitfall: String(p?.pitfall || ""),
       solution: String(p?.solution || ""),
-    }));
-
-    // Validate glossary
-    const glossary = ensureArray(parsed.glossary).map((g: any) => ({
-      term: String(g?.term || ""),
-      definition: String(g?.definition || ""),
     }));
 
     return {
@@ -154,10 +120,8 @@ function parseGroqResponse(responseText: string): GroqSummaryResponse {
       relatedTopics: ensureArray(parsed.relatedTopics).map(String),
       actionableChecklist: ensureArray(parsed.actionableChecklist).map(String),
       quizQuestions,
-      quickReferenceCard,
       learningPath: ensureArray(parsed.learningPath).map(String),
       commonPitfalls,
-      glossary,
       interactivePromptSuggestions: ensureArray(
         parsed.interactivePromptSuggestions
       ).map(String),
@@ -268,18 +232,6 @@ Provide this EXACT JSON format with ALL fields:
       "Critical information to remember",
       "Add 3-5 essential facts"
     ],
-    "definitions": [
-      "Term 1: Clear definition",
-      "Term 2: Simple explanation",
-      "Add 2-4 key definitions"
-    ],
-    "formulas": [
-      "Formula or process 1 if applicable",
-      "Key equation or method if relevant",
-      "Leave empty array if no formulas"
-    ]
-  },
-  
   "learningPath": [
     "Beginner: First topic to learn",
     "Intermediate: Next level topic",
@@ -298,18 +250,6 @@ Provide this EXACT JSON format with ALL fields:
       "solution": "Practical solution to prevent this"
     },
     "Add 2-3 common pitfalls with solutions"
-  ],
-  
-  "glossary": [
-    {
-      "term": "Technical term 1",
-      "definition": "Simple, clear definition anyone can understand"
-    },
-    {
-      "term": "Key concept 2",
-      "definition": "Easy explanation with context"
-    },
-    "Add 3-7 important terms from the content"
   ],
   
   "interactivePromptSuggestions": [
@@ -335,10 +275,8 @@ CRITICAL RULES:
 - Write in simple, clear English that anyone can understand
 - Make all content actionable and practical
 - Ensure quiz questions test real understanding, not just recall
-- Quick reference should be genuinely useful for quick lookup
 - Learning path should be progressive (beginner to advanced)
 - Pitfalls should be realistic and solutions specific
-- Glossary should define terms in simple language
 - AI prompts should be specific and useful
 - Return ONLY valid JSON, no markdown, no extra text
 - All text fields must be in English (translate if needed)
@@ -391,7 +329,9 @@ ${processedTranscript}`;
     );
     console.log(`[AI Summary] Quiz Questions: ${parsed.quizQuestions.length}`);
     console.log(`[AI Summary] Learning Path: ${parsed.learningPath.length}`);
-    console.log(`[AI Summary] Glossary Terms: ${parsed.glossary.length}`);
+    console.log(
+      `[AI Summary] Common Pitfalls: ${parsed.commonPitfalls.length}`
+    );
     console.log(`[AI Summary] Tags: ${normalizedTags.join(", ")}`);
     console.log(`[AI Summary] Folder: ${parsed.folder}`);
 
