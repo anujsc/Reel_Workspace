@@ -1,6 +1,7 @@
 export interface Reel {
   id: string;
-  url: string;
+  url?: string;
+  sourceUrl?: string;
   thumbnailUrl?: string;
   thumbnail?: string;
   title: string;
@@ -35,6 +36,7 @@ export interface Folder {
   color: string;
   reelCount: number;
   isDefault?: boolean;
+  emoji?: string;
   createdAt?: string;
   updatedAt?: string;
 }

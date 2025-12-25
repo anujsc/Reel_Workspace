@@ -8,6 +8,7 @@ import { testRoutes } from "./routes/test.routes.js";
 import { reelRoutes } from "./routes/reel.routes.js";
 import { folderRoutes } from "./routes/folder.routes.js";
 import { searchRoutes } from "./routes/search.routes.js";
+import { shareRoutes } from "./routes/share.routes.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 
 // Load environment variables
@@ -55,6 +56,7 @@ app.get("/", (req: Request, res: Response) => {
       reel: "/api/reel",
       folders: "/api/folders",
       search: "/api/search",
+      share: "/api/share",
     },
   });
 });
@@ -65,6 +67,7 @@ app.use("/api/test", testRoutes);
 app.use("/api/reel", reelRoutes);
 app.use("/api/folders", folderRoutes);
 app.use("/api/search", searchRoutes);
+app.use("/api/share", shareRoutes);
 
 // 404 Handler - Must be after all routes
 app.use(notFoundHandler);

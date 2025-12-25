@@ -8,6 +8,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import SearchResults from "./pages/SearchResults";
 import ReelDetail from "./pages/ReelDetail";
+import SharedFolder from "./pages/SharedFolder";
 import NotFound from "./pages/NotFound";
 
 // Root redirect component
@@ -58,6 +59,7 @@ const App = () => (
             </PrivateRoute>
           }
         />
+        <Route path="/shared/:shareToken" element={<SharedFolder />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

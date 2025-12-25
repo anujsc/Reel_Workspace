@@ -8,6 +8,7 @@ import {
   Edit2,
   Trash2,
   LogOut,
+  Share2,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -16,11 +17,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useFolders } from "@/hooks/useFolders";
 import { CreateFolderModal } from "@/components/modals/CreateFolderModal";
 import { RenameFolderModal } from "@/components/modals/RenameFolderModal";
 import { DeleteFolderDialog } from "@/components/modals/DeleteFolderDialog";
+import { ShareModal } from "@/components/share/ShareModal";
 import { Folder } from "@/lib/types";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -51,6 +54,7 @@ export function Sidebar({
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
 
   const handleRename = (folder: Folder) => {
@@ -61,6 +65,11 @@ export function Sidebar({
   const handleDelete = (folder: Folder) => {
     setSelectedFolder(folder);
     setIsDeleteDialogOpen(true);
+  };
+
+  const handleShare = (folder: Folder) => {
+    setSelectedFolder(folder);
+    setIsShareDialogOpen(true);
   };
 
   const handleLogout = () => {
@@ -187,6 +196,11 @@ export function Sidebar({
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleShare(folder)}>
+                            <Share2 className="w-4 h-4 mr-2" />
+                            Share
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => handleRename(folder)}
                           >
@@ -249,6 +263,17 @@ export function Sidebar({
         onOpenChange={setIsDeleteDialogOpen}
         folder={selectedFolder}
       />
+      {selectedFolder && (
+        <ShareModal
+          isOpen={isShareDialogOpen}
+          onClose={() => {
+            setIsShareDialogOpen(false);
+            setSelectedFolder(null);
+          }}
+          folderId={selectedFolder.id}
+          folderName={selectedFolder.name}
+        />
+      )}
     </>
   );
 }
