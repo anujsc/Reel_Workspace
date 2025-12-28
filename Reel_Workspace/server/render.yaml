@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: reel-workspace-api
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: |
+      # Install FFmpeg
+      apt-get update
+      apt-get install -y ffmpeg chromium chromium-driver fonts-liberation
+      # Install Node dependencies
+      npm install
+      # Build TypeScript
+      npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: CHROME_PATH
+        value: /usr/bin/chromium
+      # Add your other environment variables in Render dashboard
+      # or sync from .env file
