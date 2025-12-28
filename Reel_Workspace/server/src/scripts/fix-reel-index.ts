@@ -15,6 +15,9 @@ async function fixReelIndex() {
     console.log("Connected successfully");
 
     const db = mongoose.connection.db;
+    if (!db) {
+      throw new Error("Database connection not established");
+    }
     const reelsCollection = db.collection("reels");
 
     // Drop the old unique index
