@@ -58,6 +58,15 @@ app.get("/api/health", (req: Request, res: Response) => {
     status: "ok",
     timestamp: Date.now(),
     environment: process.env.NODE_ENV || "development",
+    cors: {
+      clientUrl: process.env.CLIENT_URL || "not set",
+      allowedOrigins: [
+        process.env.CLIENT_URL,
+        "http://localhost:5173",
+        "http://localhost:8080",
+        "http://localhost:3000",
+      ].filter(Boolean),
+    },
   });
 });
 
