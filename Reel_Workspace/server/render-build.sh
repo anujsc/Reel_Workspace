@@ -1,48 +1,32 @@
 #!/bin/bash
 
-# Render Build Script
-# This script installs FFmpeg and Chromium, then builds the app
+# Render Build Script for Node.js environment
+# Render provides FFmpeg and Chromium in their Node environment
 
-echo "🔧 Installing system dependencies..."
+echo "🔧 Checking system dependencies..."
 
-# Update package list
-apt-get update
+# Verify FFmpeg (provided by Render)
+if command -v ffmpeg &> /dev/null; then
+    echo "✅ FFmpeg found:"
+    ffmpeg -version | head -n 1
+else
+    echo "⚠️  FFmpeg not found - will use fallback methods"
+fi
 
-# Install FFmpeg for audio extraction
-echo "📦 Installing FFmpeg..."
-apt-get install -y ffmpeg
-
-# Install Chromium for Puppeteer
-echo "📦 Installing Chromium..."
-apt-get install -y \
-    chromium \
-    chromium-driver \
-    fonts-liberation \
-    libasound2 \
-    libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libcups2 \
-    libdbus-1-3 \
-    libdrm2 \
-    libgbm1 \
-    libgtk-3-0 \
-    libnspr4 \
-    libnss3 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxrandr2 \
-    xdg-utils
-
-# Verify installations
-echo "✅ Verifying FFmpeg installation..."
-ffmpeg -version | head -n 1
-
-echo "✅ Verifying Chromium installation..."
-chromium --version
+# Verify Chromium (provided by Render)
+if command -v chromium &> /dev/null; then
+    echo "✅ Chromium found:"
+    chromium --version
+elif command -v chromium-browser &> /dev/null; then
+    echo "✅ Chromium browser found:"
+    chromium-browser --version
+else
+    echo "⚠️  Chromium not found - Puppeteer will download its own"
+fi
 
 # Install Node dependencies
 echo "📦 Installing Node.js dependencies..."
-npm install
+npm ci --production=false
 
 # Build TypeScript
 echo "🔨 Building TypeScript..."

@@ -3,17 +3,11 @@ import { downloadVideo, deleteFile } from "./videoDownloader.js";
 import { extractAudioToMp3, deleteAudioFile } from "./audioExtractor.js";
 import {
   generateAndUploadThumbnail,
-  uploadFramesToCloudinary,
   ThumbnailResult,
 } from "./thumbnailService.js";
 import { transcribeAudioWithGemini } from "./aiTranscript.js";
 import { summarizeWithGroq } from "./aiSummary.js";
-import { extractTextFromMultipleImages, OCRResult } from "./aiOCR.js";
-import {
-  extractMultipleFrames,
-  deleteFrames,
-  FrameExtractionResult,
-} from "./frameExtractor.js";
+import { extractTextFromImages, OCRResult } from "./aiOCR.js";
 import { ReelProcessingError } from "../utils/errors.js";
 
 /**
@@ -184,7 +178,7 @@ export async function processReel(
     let ocrMs: number;
     try {
       const measured = await measureTime(() =>
-        extractTextFromImage(thumbnailResult.thumbnailUrl)
+        extractTextFromImages([thumbnailResult.thumbnailUrl])
       );
       ocrResult = measured.result;
       ocrMs = measured.durationMs;
