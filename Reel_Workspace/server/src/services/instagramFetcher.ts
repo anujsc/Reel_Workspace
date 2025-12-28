@@ -6,6 +6,8 @@ import {
   UnsupportedMediaError,
 } from "../utils/errors.js";
 import { fetchInstagramMediaWithYtDlp } from "./ytdlpFetcher.js";
+import { fetchInstagramMediaWithPuppeteer } from "./puppeteerScraper.js";
+import { fetchInstagramMediaWithInstaLoader } from "./instaLoaderScraper.js";
 
 /**
  * Result from Instagram media fetch
@@ -67,7 +69,10 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Fetch Instagram media using yt-dlp (primary) or Cobalt API (fallback)
+ * Fetch Instagram media using multiple methods with fallback chain:
+ * 1. Puppeteer (browser automation - best for deployment)
+ * 2. InstaLoader (lightweight HTTP scraper - no browser needed)
+ * 3. Cobalt API (external API - last resort)
  */
 export async function fetchInstagramMedia(
   instagramUrl: string
@@ -80,11 +85,44 @@ export async function fetchInstagramMedia(
   console.log(`[Instagram Fetcher] Original URL: ${instagramUrl}`);
   console.log(`[Instagram Fetcher] Cleaned URL: ${cleanUrl}`);
 
-  // Check if yt-dlp should be used (default: true)
-  const useYtDlp = process.env.USE_YTDLP !== "false";
+  // Check scraping method priority
+  // For deployment: Puppeteer (primary) -> Cobalt API (fallback)
+  // yt-dlp requires system installation, not ideal for deployment
+  const usePuppeteer = process.env.USE_PUPPETEER !== "false"; // Default: true
+  const useYtDlp = process.env.USE_YTDLP === "true"; // Default: false
+  const scrapingMethod = process.env.SCRAPING_METHOD || "puppeteer"; // Default: puppeteer
 
-  // Try yt-dlp first (most reliable method)
-  if (useYtDlp) {
+  // Method 1: Try Puppeteer first (best for deployment)
+  if (
+    usePuppeteer ||
+    scrapingMethod === "puppeteer" ||
+    scrapingMethod === "auto"
+  ) {
+    try {
+      console.log(
+        `[Instagram Fetcher] Attempting fetch with Puppeteer scraper (PRIMARY)...`
+      );
+      const result = await fetchInstagramMediaWithPuppeteer(cleanUrl);
+      console.log(`[Instagram Fetcher] ✓ Successfully fetched with Puppeteer`);
+      return result;
+    } catch (error) {
+      console.warn(
+        `[Instagram Fetcher] Puppeteer failed, trying fallback methods...`
+      );
+      console.warn(
+        `[Instagram Fetcher] Puppeteer error:`,
+        error instanceof Error ? error.message : error
+      );
+      // Continue to next method
+    }
+  }
+
+  // Method 2: Try yt-dlp (only if explicitly enabled)
+  if (
+    useYtDlp &&
+    scrapingMethod !== "puppeteer" &&
+    scrapingMethod !== "cobalt"
+  ) {
     try {
       console.log(`[Instagram Fetcher] Attempting fetch with yt-dlp...`);
       const result = await fetchInstagramMediaWithYtDlp(cleanUrl);
@@ -98,12 +136,34 @@ export async function fetchInstagramMedia(
         `[Instagram Fetcher] yt-dlp error:`,
         error instanceof Error ? error.message : error
       );
-      // Continue to Cobalt fallback below
+      // Continue to fallback methods
     }
-  } else {
-    console.log(`[Instagram Fetcher] yt-dlp disabled via USE_YTDLP=false`);
+  } else if (!useYtDlp) {
+    console.log(
+      `[Instagram Fetcher] yt-dlp disabled (not suitable for deployment)`
+    );
   }
 
+  // Method 3: Try lightweight InstaLoader (no browser required)
+  try {
+    console.log(
+      `[Instagram Fetcher] Attempting fetch with InstaLoader (lightweight)...`
+    );
+    const result = await fetchInstagramMediaWithInstaLoader(cleanUrl);
+    console.log(`[Instagram Fetcher] ✓ Successfully fetched with InstaLoader`);
+    return result;
+  } catch (error) {
+    console.warn(
+      `[Instagram Fetcher] InstaLoader failed, trying Cobalt API...`
+    );
+    console.warn(
+      `[Instagram Fetcher] InstaLoader error:`,
+      error instanceof Error ? error.message : error
+    );
+    // Continue to Cobalt fallback
+  }
+
+  // Method 4: Try Cobalt API (last resort)
   const cobaltApiUrl = process.env.COBALT_API_URL || "https://api.cobalt.tools";
 
   let lastError: Error | null = null;
