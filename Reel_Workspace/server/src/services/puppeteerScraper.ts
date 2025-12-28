@@ -65,15 +65,15 @@ export class InstagramPuppeteerScraper {
       ],
     };
 
-    // In production (Render), use system Chromium
-    if (isProduction) {
-      const chromiumPath =
-        process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium";
-      console.log(`[Puppeteer] Using Chromium at: ${chromiumPath}`);
-      launchOptions.executablePath = chromiumPath;
-    } else if (this.config.executablePath) {
-      // In development, use custom path if provided
+    // Only use custom executable path if explicitly provided
+    // Otherwise, let Puppeteer use its bundled Chromium
+    if (this.config.executablePath) {
+      console.log(
+        `[Puppeteer] Using custom Chromium at: ${this.config.executablePath}`
+      );
       launchOptions.executablePath = this.config.executablePath;
+    } else {
+      console.log(`[Puppeteer] Using bundled Chromium`);
     }
 
     try {

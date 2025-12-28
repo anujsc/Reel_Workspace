@@ -42,73 +42,101 @@ export const extractReel = async (
   const { instagramUrl } = req.body;
   const userId = req.user!._id;
 
-  // Check for duplicate URL
-  const existingReel = await Reel.findOne({
-    sourceUrl: instagramUrl,
-    userId,
-    isDeleted: false,
-  });
+  console.log(
+    `[Reel Controller] Starting extraction for user ${userId}, URL: ${instagramUrl}`
+  );
 
-  if (existingReel) {
-    throw new ConflictError("This reel has already been extracted");
-  }
+  try {
+    // Check for duplicate URL
+    const existingReel = await Reel.findOne({
+      sourceUrl: instagramUrl,
+      userId,
+      isDeleted: false,
+    });
 
-  // Process the reel using orchestrator
-  const processingResult = await processReel(instagramUrl);
+    if (existingReel) {
+      console.log(
+        `[Reel Controller] Duplicate reel found for URL: ${instagramUrl}`
+      );
+      throw new ConflictError("This reel has already been extracted");
+    }
 
-  // Find or create folder based on suggested category
-  let folder = await Folder.findOne({
-    userId,
-    name: processingResult.suggestedFolder,
-  });
+    console.log(`[Reel Controller] Processing reel...`);
+    // Process the reel using orchestrator
+    const processingResult = await processReel(instagramUrl);
+    console.log(`[Reel Controller] ✓ Reel processed successfully`);
 
-  if (!folder) {
-    // Create new folder with suggested name
-    folder = await Folder.create({
+    // Find or create folder based on suggested category
+    let folder = await Folder.findOne({
       userId,
       name: processingResult.suggestedFolder,
-      color: "#3B82F6", // Default blue
-      reelCount: 0,
     });
+
+    if (!folder) {
+      console.log(
+        `[Reel Controller] Creating new folder: ${processingResult.suggestedFolder}`
+      );
+      // Create new folder with suggested name
+      folder = await Folder.create({
+        userId,
+        name: processingResult.suggestedFolder,
+        color: "#3B82F6", // Default blue
+        reelCount: 0,
+      });
+    }
+
+    console.log(`[Reel Controller] Saving reel to database...`);
+    // Create reel document
+    const reel = await Reel.create({
+      userId,
+      folderId: folder._id,
+      sourceUrl: processingResult.sourceUrl,
+      videoUrl: processingResult.videoUrl,
+      thumbnailUrl: processingResult.thumbnailUrl,
+      title: processingResult.title, // AI-generated descriptive title
+      transcript: processingResult.transcript,
+      summary: processingResult.summary,
+      detailedExplanation: processingResult.detailedExplanation,
+      keyPoints: processingResult.keyPoints,
+      examples: processingResult.examples,
+      relatedTopics: processingResult.relatedTopics,
+      actionableChecklist: processingResult.actionableChecklist,
+      quizQuestions: processingResult.quizQuestions,
+      learningPath: processingResult.learningPath,
+      commonPitfalls: processingResult.commonPitfalls,
+      interactivePromptSuggestions:
+        processingResult.interactivePromptSuggestions,
+      tags: processingResult.tags,
+      ocrText: processingResult.ocrText,
+      durationSeconds: processingResult.metadata?.durationSeconds,
+    });
+
+    // Increment folder reel count
+    await Folder.findByIdAndUpdate(folder._id, {
+      $inc: { reelCount: 1 },
+    });
+
+    console.log(
+      `[Reel Controller] ✓ Reel extraction complete, ID: ${reel._id}`
+    );
+
+    createdResponse(
+      res,
+      {
+        reel,
+        timings: processingResult.timings,
+      },
+      "Reel extracted successfully"
+    );
+  } catch (error) {
+    console.error(`[Reel Controller] ❌ Extraction failed:`, {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+      url: instagramUrl,
+      userId,
+    });
+    throw error;
   }
-
-  // Create reel document
-  const reel = await Reel.create({
-    userId,
-    folderId: folder._id,
-    sourceUrl: processingResult.sourceUrl,
-    videoUrl: processingResult.videoUrl,
-    thumbnailUrl: processingResult.thumbnailUrl,
-    title: processingResult.title, // AI-generated descriptive title
-    transcript: processingResult.transcript,
-    summary: processingResult.summary,
-    detailedExplanation: processingResult.detailedExplanation,
-    keyPoints: processingResult.keyPoints,
-    examples: processingResult.examples,
-    relatedTopics: processingResult.relatedTopics,
-    actionableChecklist: processingResult.actionableChecklist,
-    quizQuestions: processingResult.quizQuestions,
-    learningPath: processingResult.learningPath,
-    commonPitfalls: processingResult.commonPitfalls,
-    interactivePromptSuggestions: processingResult.interactivePromptSuggestions,
-    tags: processingResult.tags,
-    ocrText: processingResult.ocrText,
-    durationSeconds: processingResult.metadata?.durationSeconds,
-  });
-
-  // Increment folder reel count
-  await Folder.findByIdAndUpdate(folder._id, {
-    $inc: { reelCount: 1 },
-  });
-
-  createdResponse(
-    res,
-    {
-      reel,
-      timings: processingResult.timings,
-    },
-    "Reel extracted successfully"
-  );
 };
 
 /**

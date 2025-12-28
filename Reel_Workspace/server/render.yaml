@@ -12,11 +12,7 @@ services:
         value: production
       - key: PORT
         value: 5000
-      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
-        value: "true"
-      - key: PUPPETEER_EXECUTABLE_PATH
-        value: /usr/bin/chromium
-      - key: CHROME_PATH
-        value: /usr/bin/chromium
+      # Let Puppeteer download and use its own Chromium
+      # Don't set PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
+      # Don't set PUPPETEER_EXECUTABLE_PATH
       # Add your other environment variables in Render dashboard
-      # or sync from .env file
