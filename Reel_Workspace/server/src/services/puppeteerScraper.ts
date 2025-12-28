@@ -45,6 +45,8 @@ export class InstagramPuppeteerScraper {
       return this.browser;
     }
 
+    const isProduction = process.env.NODE_ENV === "production";
+
     const launchOptions: any = {
       headless: this.config.headless ? "new" : false,
       args: [
@@ -54,17 +56,35 @@ export class InstagramPuppeteerScraper {
         "--disable-accelerated-2d-canvas",
         "--disable-gpu",
         "--window-size=1920x1080",
+        "--disable-web-security",
+        "--disable-features=IsolateOrigins,site-per-process",
+        "--disable-blink-features=AutomationControlled",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
       ],
     };
 
-    // Only add executable path if explicitly provided
-    // Full puppeteer package includes Chrome, so this is optional
-    if (this.config.executablePath) {
+    // In production (Render), use system Chromium
+    if (isProduction) {
+      const chromiumPath =
+        process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium";
+      console.log(`[Puppeteer] Using Chromium at: ${chromiumPath}`);
+      launchOptions.executablePath = chromiumPath;
+    } else if (this.config.executablePath) {
+      // In development, use custom path if provided
       launchOptions.executablePath = this.config.executablePath;
     }
 
     try {
+      console.log(`[Puppeteer] Launching browser with options:`, {
+        headless: launchOptions.headless,
+        executablePath: launchOptions.executablePath || "bundled",
+        argsCount: launchOptions.args.length,
+      });
+
       this.browser = await puppeteer.launch(launchOptions);
+      console.log(`[Puppeteer] ✓ Browser launched successfully`);
       return this.browser;
     } catch (error) {
       console.error(`[Puppeteer Scraper] Failed to launch browser:`, error);
