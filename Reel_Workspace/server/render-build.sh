@@ -4,32 +4,42 @@
 
 echo "🔧 Starting build process..."
 
-# Set Puppeteer cache directory
-export PUPPETEER_CACHE_DIR="${HOME}/.cache/puppeteer"
+# Set Puppeteer cache directory to match Render's persistent storage
+export PUPPETEER_CACHE_DIR="/opt/render/.cache/puppeteer"
 echo "📁 Puppeteer cache: $PUPPETEER_CACHE_DIR"
+
+# Create cache directory if it doesn't exist
+mkdir -p "$PUPPETEER_CACHE_DIR"
 
 # Install Node dependencies (including Puppeteer)
 echo "📦 Installing Node.js dependencies..."
 npm ci --production=false
 
-# Install Chrome for Puppeteer
+# Install Chrome for Puppeteer with explicit cache path
 echo "🌐 Installing Chrome via Puppeteer..."
-npx puppeteer browsers install chrome
+npx puppeteer browsers install chrome --path "$PUPPETEER_CACHE_DIR"
 
-# Find installed Chrome
-CHROME_PATH=$(find $PUPPETEER_CACHE_DIR -name chrome -type f 2>/dev/null | head -1)
-
-if [ -n "$CHROME_PATH" ]; then
-    echo "✅ Chrome installed successfully"
-    echo "📍 Chrome location: $CHROME_PATH"
+# Verify Chrome installation
+echo "🔍 Verifying Chrome installation..."
+if [ -d "$PUPPETEER_CACHE_DIR" ]; then
+    echo "📂 Cache directory contents:"
+    ls -la "$PUPPETEER_CACHE_DIR" || echo "  (empty or inaccessible)"
     
-    # Make it executable
-    chmod +x "$CHROME_PATH"
+    # Find Chrome binary
+    CHROME_PATH=$(find "$PUPPETEER_CACHE_DIR" -name chrome -type f 2>/dev/null | head -1)
     
-    # Export for runtime
-    export PUPPETEER_EXECUTABLE_PATH="$CHROME_PATH"
+    if [ -n "$CHROME_PATH" ]; then
+        echo "✅ Chrome installed successfully"
+        echo "📍 Chrome location: $CHROME_PATH"
+        
+        # Make it executable
+        chmod +x "$CHROME_PATH" 2>/dev/null || echo "⚠️  Could not chmod (may not be needed)"
+    else
+        echo "⚠️  Chrome binary not found in cache"
+        echo "    Puppeteer will attempt auto-detection at runtime"
+    fi
 else
-    echo "⚠️  Chrome not found in cache, will use auto-detect"
+    echo "⚠️  Cache directory not created"
 fi
 
 # Verify FFmpeg (provided by Render)
