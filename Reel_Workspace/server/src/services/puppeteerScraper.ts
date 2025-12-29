@@ -19,10 +19,9 @@ interface ScraperConfig {
 
 const DEFAULT_CONFIG: ScraperConfig = {
   headless: true,
-  timeout: 30000,
+  timeout: 60000, // Increased to 60 seconds
   userAgent:
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-  // Don't set executablePath - let Puppeteer use bundled Chromium
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
   executablePath: undefined,
 };
 
@@ -134,21 +133,29 @@ export class InstagramPuppeteerScraper {
     const page = await browser.newPage();
 
     try {
-      // Set user agent to avoid detection
+      // Enhanced stealth: Set user agent
       await page.setUserAgent(this.config.userAgent);
 
       // Set viewport
       await page.setViewport({ width: 1920, height: 1080 });
 
-      // Navigate to Instagram URL
-      console.log(`[Puppeteer Scraper] Navigating to URL...`);
-      await page.goto(url, {
-        waitUntil: "networkidle2",
-        timeout: this.config.timeout,
+      // Set extra headers to look more like a real browser
+      await page.setExtraHTTPHeaders({
+        "Accept-Language": "en-US,en;q=0.9",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
       });
 
-      // Wait a bit for dynamic content to load
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Navigate to Instagram URL with relaxed wait condition
+      console.log(`[Puppeteer Scraper] Navigating to URL...`);
+      await page.goto(url, {
+        waitUntil: "domcontentloaded", // Changed from networkidle2 (faster, more reliable)
+        timeout: 60000, // Increased timeout to 60s
+      });
+
+      // Wait for dynamic content to load
+      console.log(`[Puppeteer Scraper] Waiting for content to load...`);
+      await new Promise((resolve) => setTimeout(resolve, 3000));
 
       // Check if page requires login (private account)
       const isLoginRequired = await page.evaluate(() => {
