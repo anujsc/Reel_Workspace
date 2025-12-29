@@ -1,49 +1,36 @@
 #!/bin/bash
 
-# Render Build Script - Install Chromium and dependencies
+# Render Build Script - Install Chrome via Puppeteer
 
 echo "🔧 Starting build process..."
 
-# Install Chromium and required dependencies
-echo "🌐 Installing Chromium and dependencies..."
-apt-get update
-apt-get install -y \
-    chromium \
-    chromium-driver \
-    fonts-liberation \
-    libasound2 \
-    libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libatspi2.0-0 \
-    libcups2 \
-    libdbus-1-3 \
-    libdrm2 \
-    libgbm1 \
-    libgtk-3-0 \
-    libnspr4 \
-    libnss3 \
-    libwayland-client0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxkbcommon0 \
-    libxrandr2 \
-    xdg-utils
-
-# Verify Chromium installation
-if command -v chromium &> /dev/null; then
-    echo "✅ Chromium installed successfully"
-    chromium --version
-    CHROME_BIN=$(which chromium)
-    echo "📍 Chromium location: $CHROME_BIN"
-else
-    echo "❌ Chromium installation failed"
-    exit 1
-fi
+# Set Puppeteer cache directory
+export PUPPETEER_CACHE_DIR="${HOME}/.cache/puppeteer"
+echo "📁 Puppeteer cache: $PUPPETEER_CACHE_DIR"
 
 # Install Node dependencies (including Puppeteer)
 echo "📦 Installing Node.js dependencies..."
 npm ci --production=false
+
+# Install Chrome for Puppeteer
+echo "🌐 Installing Chrome via Puppeteer..."
+npx puppeteer browsers install chrome
+
+# Find installed Chrome
+CHROME_PATH=$(find $PUPPETEER_CACHE_DIR -name chrome -type f 2>/dev/null | head -1)
+
+if [ -n "$CHROME_PATH" ]; then
+    echo "✅ Chrome installed successfully"
+    echo "📍 Chrome location: $CHROME_PATH"
+    
+    # Make it executable
+    chmod +x "$CHROME_PATH"
+    
+    # Export for runtime
+    export PUPPETEER_EXECUTABLE_PATH="$CHROME_PATH"
+else
+    echo "⚠️  Chrome not found in cache, will use auto-detect"
+fi
 
 # Verify FFmpeg (provided by Render)
 if command -v ffmpeg &> /dev/null; then

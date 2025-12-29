@@ -61,8 +61,6 @@ export class InstagramPuppeteerScraper {
         "--disable-background-timer-throttling",
         "--disable-backgrounding-occluded-windows",
         "--disable-renderer-backgrounding",
-        "--single-process", // Important for Render
-        "--no-zygote", // Important for Render
       ],
     };
 
@@ -70,7 +68,7 @@ export class InstagramPuppeteerScraper {
     // 1. Custom config executablePath
     // 2. PUPPETEER_EXECUTABLE_PATH env (standard Puppeteer env var)
     // 3. CHROME_PATH env (alternative)
-    // 4. Let Puppeteer auto-detect
+    // 4. Let Puppeteer auto-detect from cache
     if (this.config.executablePath) {
       console.log(
         `[Puppeteer] Using custom Chromium at: ${this.config.executablePath}`
@@ -87,13 +85,19 @@ export class InstagramPuppeteerScraper {
       );
       launchOptions.executablePath = process.env.CHROME_PATH;
     } else {
-      console.log(`[Puppeteer] Using auto-detected Chrome`);
+      console.log(
+        `[Puppeteer] Using auto-detected Chrome from cache: ${
+          process.env.PUPPETEER_CACHE_DIR || "~/.cache/puppeteer"
+        }`
+      );
+      // Let Puppeteer find Chrome in its cache directory
     }
 
     try {
       console.log(`[Puppeteer] Launching browser with options:`, {
         headless: launchOptions.headless,
         executablePath: launchOptions.executablePath || "auto-detect",
+        cacheDir: process.env.PUPPETEER_CACHE_DIR || "default",
         argsCount: launchOptions.args.length,
       });
 

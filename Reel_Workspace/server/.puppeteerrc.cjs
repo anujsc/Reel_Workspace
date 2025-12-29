@@ -5,10 +5,10 @@ const { homedir } = require("os");
  * @type {import("puppeteer").Configuration}
  */
 module.exports = {
-  // Download Chromium during npm install
-  skipDownload: false,
+  // Don't download during npm install (we do it in build script)
+  skipDownload: true,
 
-  // Use Render's cache directory
+  // Use home directory cache (Render allows this)
   cacheDirectory:
     process.env.PUPPETEER_CACHE_DIR || join(homedir(), ".cache", "puppeteer"),
 };
