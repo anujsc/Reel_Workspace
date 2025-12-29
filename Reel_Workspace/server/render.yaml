@@ -13,5 +13,5 @@ services:
       - key: PORT
         value: 5000
       - key: PUPPETEER_CACHE_DIR
-        value: /opt/render/.cache/puppeteer
+        value: /opt/render/project/.cache/puppeteer
       # Add your other environment variables in Render dashboard
