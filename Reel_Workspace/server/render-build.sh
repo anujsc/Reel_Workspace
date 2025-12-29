@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Render Build Script - Install Puppeteer with Chromium
+# Render Build Script - Use system Chromium
 
 echo "🔧 Starting build process..."
 
@@ -8,16 +8,13 @@ echo "🔧 Starting build process..."
 echo "📦 Installing Node.js dependencies..."
 npm ci --production=false
 
-# Install Chromium for Puppeteer
-echo "🌐 Installing Chromium for Puppeteer..."
-npx puppeteer browsers install chrome
-
-# Verify Chromium installation
-if [ -d "/opt/render/.cache/puppeteer" ]; then
-    echo "✅ Chromium installed successfully"
-    ls -la /opt/render/.cache/puppeteer/
+# Check for system Chromium (provided by Render)
+if [ -f "/usr/bin/chromium" ]; then
+    echo "✅ System Chromium found at /usr/bin/chromium"
+    /usr/bin/chromium --version 2>/dev/null || echo "⚠️  Could not get Chromium version"
 else
-    echo "⚠️  Chromium cache directory not found"
+    echo "⚠️  System Chromium not found at /usr/bin/chromium"
+    echo "    Make sure CHROME_PATH=/usr/bin/chromium is set in Render environment variables"
 fi
 
 # Verify FFmpeg (provided by Render)

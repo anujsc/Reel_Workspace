@@ -46,8 +46,6 @@ export class InstagramPuppeteerScraper {
       return this.browser;
     }
 
-    const isProduction = process.env.NODE_ENV === "production";
-
     const launchOptions: any = {
       headless: this.config.headless ? "new" : false,
       args: [
@@ -66,21 +64,34 @@ export class InstagramPuppeteerScraper {
       ],
     };
 
-    // Only use custom executable path if explicitly provided
-    // Otherwise, let Puppeteer use its bundled Chromium
+    // Priority order for finding Chrome:
+    // 1. Custom config executablePath
+    // 2. CHROME_PATH env (Render's system Chromium)
+    // 3. PUPPETEER_EXECUTABLE_PATH env
+    // 4. Let Puppeteer auto-detect
     if (this.config.executablePath) {
       console.log(
         `[Puppeteer] Using custom Chromium at: ${this.config.executablePath}`
       );
       launchOptions.executablePath = this.config.executablePath;
+    } else if (process.env.CHROME_PATH) {
+      console.log(
+        `[Puppeteer] Using system Chromium from CHROME_PATH: ${process.env.CHROME_PATH}`
+      );
+      launchOptions.executablePath = process.env.CHROME_PATH;
+    } else if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+      console.log(
+        `[Puppeteer] Using Chromium from PUPPETEER_EXECUTABLE_PATH: ${process.env.PUPPETEER_EXECUTABLE_PATH}`
+      );
+      launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
     } else {
-      console.log(`[Puppeteer] Using bundled Chromium`);
+      console.log(`[Puppeteer] Using auto-detected Chrome`);
     }
 
     try {
       console.log(`[Puppeteer] Launching browser with options:`, {
         headless: launchOptions.headless,
-        executablePath: launchOptions.executablePath || "bundled",
+        executablePath: launchOptions.executablePath || "auto-detect",
         argsCount: launchOptions.args.length,
       });
 
