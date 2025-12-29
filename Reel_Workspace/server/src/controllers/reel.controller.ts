@@ -3,6 +3,7 @@ import { AuthRequest } from "../middleware/auth.js";
 import { Reel } from "../models/Reel.js";
 import { Folder } from "../models/Folder.js";
 import { processReel } from "../services/reelProcessor.js";
+import { processReelOptimized } from "../services/reelProcessorOptimized.js";
 import {
   successResponse,
   createdResponse,
@@ -15,6 +16,9 @@ import {
   ValidationError,
 } from "../utils/errors.js";
 import mongoose from "mongoose";
+
+// Use optimized processor by default (can be toggled via env var)
+const USE_OPTIMIZED = process.env.USE_OPTIMIZED_PROCESSOR !== "false";
 
 /**
  * Extract and create a new reel from Instagram URL
@@ -62,8 +66,10 @@ export const extractReel = async (
     }
 
     console.log(`[Reel Controller] Processing reel...`);
-    // Process the reel using orchestrator
-    const processingResult = await processReel(instagramUrl);
+    // Process the reel using orchestrator (optimized version by default)
+    const processingResult = USE_OPTIMIZED
+      ? await processReelOptimized(instagramUrl)
+      : await processReel(instagramUrl);
     console.log(`[Reel Controller] ✓ Reel processed successfully`);
 
     // Find or create folder based on suggested category

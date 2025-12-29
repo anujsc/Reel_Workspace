@@ -153,9 +153,9 @@ export class InstagramPuppeteerScraper {
         timeout: 60000, // Increased timeout to 60s
       });
 
-      // Wait for dynamic content to load
-      console.log(`[Puppeteer Scraper] Waiting for content to load...`);
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      // Wait for dynamic content to load (reduced from 3s to 1.5s)
+      console.log(`[Puppeteer Scraper] Waiting for content...`);
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
       // Check if page requires login (private account)
       const isLoginRequired = await page.evaluate(() => {

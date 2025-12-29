@@ -7,7 +7,10 @@ module.exports = {
   // Don't download during npm install
   skipDownload: true,
 
-  // Use project directory (persists from build to runtime on Render)
+  // Use different cache paths for development vs production
   cacheDirectory:
-    process.env.PUPPETEER_CACHE_DIR || "/opt/render/project/.cache/puppeteer",
+    process.env.PUPPETEER_CACHE_DIR ||
+    (process.platform === "win32"
+      ? join(process.cwd(), ".cache", "puppeteer") // Windows local dev
+      : "/opt/render/project/.cache/puppeteer"), // Linux production
 };
