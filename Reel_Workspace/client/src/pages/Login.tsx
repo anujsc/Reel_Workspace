@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InlineLoader } from "@/components/Loader";
-import { Brain, Eye, EyeOff, Loader2, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function Login() {
@@ -25,16 +25,18 @@ export default function Login() {
   const validateForm = (): boolean => {
     const newErrors: typeof errors = {};
 
+    // Email validation (matches server-side)
     if (!email.trim()) {
       newErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = "Please enter a valid email";
+      newErrors.email = "Please provide a valid email address";
+    } else if (email.length > 255) {
+      newErrors.email = "Email cannot exceed 255 characters";
     }
 
-    if (!password) {
+    // Password validation (login only requires non-empty)
+    if (!password.trim()) {
       newErrors.password = "Password is required";
-    } else if (password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
     }
 
     setErrors(newErrors);
