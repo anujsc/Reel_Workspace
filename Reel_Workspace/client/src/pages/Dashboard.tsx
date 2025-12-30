@@ -8,6 +8,7 @@ import { ReelCard } from "@/components/ReelCard";
 import { ReelCardSkeleton } from "@/components/ReelCardSkeleton";
 import { Sidebar } from "@/components/Sidebar";
 import { StudyMode } from "@/components/StudyMode";
+import { InlineLoader } from "@/components/Loader";
 import {
   Search,
   LogOut,
@@ -206,7 +207,9 @@ export default function Dashboard() {
                 ⏎
               </kbd>
               {isSearching && (
-                <Loader2 className="absolute right-12 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
+                <div className="absolute right-12 top-1/2 -translate-y-1/2">
+                  <InlineLoader />
+                </div>
               )}
             </form>
 

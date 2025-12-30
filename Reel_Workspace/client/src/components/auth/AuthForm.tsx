@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { InlineLoader } from "@/components/Loader";
 import { Brain, Eye, EyeOff, Loader2, Mail, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -190,7 +191,7 @@ export function AuthForm({ onAuth }: AuthFormProps) {
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <InlineLoader className="mr-2" />
                 {mode === "login" ? "Signing in..." : "Creating account..."}
               </>
             ) : mode === "login" ? (

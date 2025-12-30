@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { InlineLoader } from "@/components/Loader";
 import { Brain, Eye, EyeOff, Loader2, Mail, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -174,7 +175,7 @@ export default function Login() {
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                <InlineLoader className="mr-2" />
                 Signing in...
               </>
             ) : (

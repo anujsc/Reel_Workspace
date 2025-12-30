@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, Trash2, Edit2, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PageLoader } from "@/components/Loader";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,11 +33,7 @@ export default function ReelDetail() {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <PageLoader message="Loading reel..." />;
   }
 
   if (error || !reel) {

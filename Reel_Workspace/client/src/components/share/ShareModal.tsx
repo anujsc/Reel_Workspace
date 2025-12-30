@@ -12,6 +12,7 @@ import {
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Loader, InlineLoader } from "@/components/Loader";
 import { CopyLinkInput } from "./CopyLinkInput";
 import { SocialShareButton } from "./SocialShareButton";
 import { ExpirySelector } from "./ExpirySelector";
@@ -176,7 +177,7 @@ export function ShareModal({
         <div className="px-6 py-6 space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              <Loader size="md" />
             </div>
           ) : (
             <>
@@ -203,7 +204,7 @@ export function ShareModal({
                   >
                     {isCreating ? (
                       <>
-                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                        <InlineLoader className="mr-2" />
                         Creating Share Link...
                       </>
                     ) : (
