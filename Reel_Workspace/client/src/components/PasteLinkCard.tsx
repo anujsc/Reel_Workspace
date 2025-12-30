@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Link, Zap } from "lucide-react";
+import { Zap } from "lucide-react";
 import { ProcessingSkeleton } from "./Skeleton";
 import { useExtractReel } from "../hooks/useExtractReel";
 import { validateInstagramUrl } from "../utils/validators";
@@ -11,6 +11,7 @@ export function PasteLinkCard() {
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
   const [processingStep, setProcessingStep] = useState<string>("idle");
+  const [startTime, setStartTime] = useState<number>(0);
 
   const { mutate: extractReel, isPending } = useExtractReel();
 
@@ -28,34 +29,53 @@ export function PasteLinkCard() {
       return;
     }
 
-    // Simulate processing steps for better UX
-    const steps = ["downloading", "transcribing", "summarizing", "extracting"];
+    // Simulate processing steps with realistic timing based on actual backend services
+    // Total: ~35 seconds (matches 30-40s expectation)
+    const steps = [
+      { name: "fetching", duration: 2000 },      // ~2s - Fetch Instagram media
+      { name: "downloading", duration: 3000 },   // ~3s - Download video
+      { name: "processing", duration: 4000 },    // ~4s - Audio extraction + thumbnail (parallel)
+      { name: "transcribing", duration: 8000 },  // ~8s - AI transcription with Gemini
+      { name: "analyzing", duration: 10000 },    // ~10s - AI summary generation with Groq
+      { name: "extracting", duration: 5000 },    // ~5s - OCR text extraction
+      { name: "finalizing", duration: 3000 },    // ~3s - Save to database
+    ];
+    
     let currentStep = 0;
+    let stepTimeoutId: NodeJS.Timeout;
+    const processingStartTime = Date.now();
+    setStartTime(processingStartTime);
 
-    setProcessingStep(steps[0]);
-
-    const stepInterval = setInterval(() => {
-      currentStep++;
+    const advanceStep = () => {
       if (currentStep < steps.length) {
-        setProcessingStep(steps[currentStep]);
-      } else {
-        clearInterval(stepInterval);
+        setProcessingStep(steps[currentStep].name);
+        currentStep++;
+        if (currentStep < steps.length) {
+          stepTimeoutId = setTimeout(advanceStep, steps[currentStep - 1].duration);
+        }
       }
-    }, 2000); // Change step every 2 seconds
+    };
+
+    advanceStep();
 
     extractReel(url, {
       onSuccess: () => {
-        clearInterval(stepInterval);
+        if (stepTimeoutId) clearTimeout(stepTimeoutId);
         setProcessingStep("completed");
-        toast.success("Reel added successfully!");
+        toast.success("Reel extracted successfully", {
+          description: "Your insights are ready"
+        });
         setUrl("");
-        setTimeout(() => setProcessingStep("idle"), 500);
+        setTimeout(() => {
+          setProcessingStep("idle");
+          setStartTime(0);
+        }, 500);
       },
       onError: (error: any) => {
-        clearInterval(stepInterval);
+        if (stepTimeoutId) clearTimeout(stepTimeoutId);
         setProcessingStep("error");
 
-        // Handle different error types
+        // Handle different error types with actionable guidance
         const errorMessage = error?.response?.data?.message || error?.message;
 
         if (
@@ -63,16 +83,30 @@ export function PasteLinkCard() {
           errorMessage?.toLowerCase().includes("already exists")
         ) {
           setError("This reel already exists in your collection");
-          toast.error("This reel already exists");
+          toast.error("Duplicate Reel", {
+            description: "This reel has already been extracted."
+          });
         } else if (error?.response?.status === 400) {
           setError(errorMessage || "Invalid URL or request");
-          toast.error(errorMessage || "Invalid request");
+          toast.error("Invalid Request", {
+            description: errorMessage || "Please check the URL and try again."
+          });
+        } else if (error?.response?.status === 429) {
+          setError("Rate limit exceeded. Please try again in a few minutes.");
+          toast.error("Too Many Requests", {
+            description: "Please wait a moment before trying again."
+          });
         } else {
           setError(errorMessage || "Failed to extract reel. Please try again.");
-          toast.error("Failed to extract reel");
+          toast.error("Extraction Failed", {
+            description: "Please check your connection and try again."
+          });
         }
 
-        setTimeout(() => setProcessingStep("idle"), 500);
+        setTimeout(() => {
+          setProcessingStep("idle");
+          setStartTime(0);
+        }, 500);
       },
     });
   };
@@ -83,7 +117,7 @@ export function PasteLinkCard() {
     processingStep !== "error";
 
   if (isProcessing) {
-    return <ProcessingSkeleton step={processingStep} />;
+    return <ProcessingSkeleton step={processingStep} startTime={startTime} />;
   }
 
   return (
@@ -120,7 +154,7 @@ export function PasteLinkCard() {
             className="h-11 px-6 font-medium"
           >
             <Zap className="w-4 h-4 mr-2" />
-            Analyze
+            Extract
           </Button>
         </div>
 
