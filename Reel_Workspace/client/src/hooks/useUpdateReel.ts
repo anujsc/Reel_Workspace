@@ -21,6 +21,8 @@ export const useUpdateReel = () => {
       queryClient.invalidateQueries({ queryKey: ["reels"] });
       queryClient.invalidateQueries({ queryKey: ["search"] });
       queryClient.invalidateQueries({ queryKey: ["reel"] });
+      // Invalidate folders to update reel counts when moving reels between folders
+      queryClient.invalidateQueries({ queryKey: ["folders"] });
       console.log("✅ Reel updated successfully - Cache invalidated");
     },
     onError: (error: any) => {

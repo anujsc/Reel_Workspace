@@ -25,7 +25,7 @@ export const Loader: React.FC<LoaderProps> = ({
   message,
 }) => {
   const loaderContent = (
-    <div className={cn('flex flex-col items-center justify-center gap-4', className)}>
+    <div className={cn('flex flex-col items-center justify-center', className)}>
       <div className={cn(sizeMap[size], 'flex items-center justify-center')}>
         <Lottie
           animationData={loaderAnimation}

@@ -6,6 +6,7 @@ import { useDebounce } from "../hooks/useDebounce";
 import { PasteLinkCard } from "@/components/PasteLinkCard";
 import { ReelCard } from "@/components/ReelCard";
 import { ReelCardSkeleton } from "@/components/ReelCardSkeleton";
+import { SkeletonWrapper } from "@/components/SkeletonWrapper";
 import { Sidebar } from "@/components/Sidebar";
 import { StudyMode } from "@/components/StudyMode";
 import { InlineLoader } from "@/components/Loader";
@@ -236,71 +237,75 @@ export default function Dashboard() {
           </div>
 
           {/* Knowledge Grid */}
-          {isLoading ? (
-            // Loading state with skeleton loaders
-            <div className="space-y-4">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <ReelCardSkeleton key={index} />
-              ))}
-            </div>
-          ) : error ? (
-            // Error state
-            <div className="bg-card border border-border rounded-xl p-12 text-center">
-              <AlertCircle className="w-10 h-10 text-destructive mx-auto mb-3" />
-              <h3 className="text-base font-semibold mb-1.5">
-                Failed to load knowledge
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                {error instanceof Error
-                  ? error.message
-                  : "Something went wrong"}
-              </p>
-              <Button onClick={() => refetch()} variant="outline" size="sm">
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Try Again
-              </Button>
-            </div>
-          ) : filteredReels.length === 0 ? (
-            // Empty state
-            <div className="bg-card border border-border rounded-xl p-12 text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-secondary flex items-center justify-center">
-                <svg
-                  className="w-8 h-8 text-muted-foreground"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={1.5}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                  />
-                </svg>
+          <SkeletonWrapper
+            isLoading={isLoading}
+            skeleton={
+              <div className="space-y-4">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <ReelCardSkeleton key={index} />
+                ))}
               </div>
-              <h3 className="text-base font-semibold mb-1.5">
-                {searchQuery ? "No results found" : "No knowledge yet"}
-              </h3>
-              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                {searchQuery
-                  ? "Try adjusting your search terms or filters"
-                  : "Start building your knowledge library by adding your first Reel above"}
-              </p>
-            </div>
-          ) : (
-            // Knowledge list (vertical cards)
-            <div className="space-y-3">
-              {filteredReels.map((reel, index) => (
-                <div
-                  key={reel.id}
-                  className="animate-fade-in"
-                  style={{ animationDelay: `${index * 30}ms` }}
-                >
-                  <ReelCard reel={reel} highlightQuery={searchQuery} />
+            }
+          >
+            {error ? (
+              // Error state
+              <div className="bg-card border border-border rounded-xl p-12 text-center">
+                <AlertCircle className="w-10 h-10 text-destructive mx-auto mb-3" />
+                <h3 className="text-base font-semibold mb-1.5">
+                  Failed to load knowledge
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {error instanceof Error
+                    ? error.message
+                    : "Something went wrong"}
+                </p>
+                <Button onClick={() => refetch()} variant="outline" size="sm">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Try Again
+                </Button>
+              </div>
+            ) : filteredReels.length === 0 ? (
+              // Empty state
+              <div className="bg-card border border-border rounded-xl p-12 text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-secondary flex items-center justify-center">
+                  <svg
+                    className="w-8 h-8 text-muted-foreground"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={1.5}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
                 </div>
-              ))}
-            </div>
-          )}
+                <h3 className="text-base font-semibold mb-1.5">
+                  {searchQuery ? "No results found" : "No knowledge yet"}
+                </h3>
+                <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                  {searchQuery
+                    ? "Try adjusting your search terms or filters"
+                    : "Start building your knowledge library by adding your first Reel above"}
+                </p>
+              </div>
+            ) : (
+              // Knowledge list (vertical cards)
+              <div className="space-y-3">
+                {filteredReels.map((reel, index) => (
+                  <div
+                    key={reel.id}
+                    className="animate-fade-in"
+                    style={{ animationDelay: `${index * 30}ms` }}
+                  >
+                    <ReelCard reel={reel} highlightQuery={searchQuery} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </SkeletonWrapper>
         </div>
       </main>
     </div>

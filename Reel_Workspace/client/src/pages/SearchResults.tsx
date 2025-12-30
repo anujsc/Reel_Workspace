@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { useSearch } from "@/hooks/useSearch";
 import { ReelCard } from "@/components/ReelCard";
 import { ReelCardSkeleton } from "@/components/ReelCardSkeleton";
+import { SkeletonWrapper } from "@/components/SkeletonWrapper";
 import { FilterPanel, FilterState } from "@/components/FilterPanel";
 import { Sidebar } from "@/components/Sidebar";
 import { StudyMode } from "@/components/StudyMode";
@@ -340,48 +341,53 @@ export default function SearchResults() {
           </div>
 
           {/* Results Grid */}
-          {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <ReelCardSkeleton key={index} />
-              ))}
-            </div>
-          ) : error ? (
-            <div className="calm-card text-center py-12">
-              <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Search failed</h3>
-              <p className="text-muted-foreground">
-                {error instanceof Error
-                  ? error.message
-                  : "Something went wrong"}
-              </p>
-            </div>
-          ) : reels.length === 0 ? (
-            <div className="calm-card text-center py-12">
-              <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-                <Search className="w-12 h-12 text-muted-foreground" />
+          <SkeletonWrapper
+            isLoading={isLoading}
+            skeleton={
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <ReelCardSkeleton key={index} />
+                ))}
               </div>
-              <h3 className="text-lg font-semibold mb-2">No results found</h3>
-              <p className="text-muted-foreground mb-4">
-                Try adjusting your search terms or filters
-              </p>
-              <Button variant="outline" onClick={handleClearFilters}>
-                Clear Filters
-              </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {reels.map((reel, index) => (
-                <div
-                  key={reel.id}
-                  className="animate-fade-in"
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <ReelCard reel={reel} highlightQuery={query} />
+            }
+          >
+            {error ? (
+              <div className="calm-card text-center py-12">
+                <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Search failed</h3>
+                <p className="text-muted-foreground">
+                  {error instanceof Error
+                    ? error.message
+                    : "Something went wrong"}
+                </p>
+              </div>
+            ) : reels.length === 0 ? (
+              <div className="calm-card text-center py-12">
+                <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+                  <Search className="w-12 h-12 text-muted-foreground" />
                 </div>
-              ))}
-            </div>
-          )}
+                <h3 className="text-lg font-semibold mb-2">No results found</h3>
+                <p className="text-muted-foreground mb-4">
+                  Try adjusting your search terms or filters
+                </p>
+                <Button variant="outline" onClick={handleClearFilters}>
+                  Clear Filters
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {reels.map((reel, index) => (
+                  <div
+                    key={reel.id}
+                    className="animate-fade-in"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <ReelCard reel={reel} highlightQuery={query} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </SkeletonWrapper>
         </div>
       </main>
     </div>

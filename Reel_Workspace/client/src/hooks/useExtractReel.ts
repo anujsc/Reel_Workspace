@@ -32,6 +32,8 @@ export const useExtractReel = () => {
     onSuccess: () => {
       // Invalidate and refetch reels query to show the new reel
       queryClient.invalidateQueries({ queryKey: ["reels"] });
+      // Invalidate folders query to update folder list and reel counts
+      queryClient.invalidateQueries({ queryKey: ["folders"] });
     },
     onError: (error: ExtractReelError) => {
       console.error("Extract reel error:", error);

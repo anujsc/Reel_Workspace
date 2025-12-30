@@ -7,36 +7,37 @@ interface SkeletonProps {
 
 export function Skeleton({ className }: SkeletonProps) {
   return (
-    <div
-      className={cn(
-        "rounded-lg bg-muted skeleton-shimmer",
-        className
-      )}
-    />
+    <div className={cn("rounded-lg bg-muted skeleton-shimmer", className)} />
   );
 }
 
 export function ReelCardSkeleton() {
   return (
     <div className="calm-card animate-fade-in">
-      <Skeleton className="h-5 w-3/4 mb-2" />
-      <Skeleton className="h-4 w-full mb-1" />
-      <Skeleton className="h-4 w-5/6 mb-3" />
-      <Skeleton className="aspect-video w-full rounded-lg mb-3" />
+      <div className="h-5 bg-muted skeleton-shimmer rounded w-3/4 mb-2" />
+      <div className="h-4 bg-muted skeleton-shimmer rounded w-full mb-1" />
+      <div className="h-4 bg-muted skeleton-shimmer rounded w-5/6 mb-3" />
+      <div className="aspect-video w-full rounded-lg mb-3 bg-muted skeleton-shimmer" />
       <div className="flex gap-2">
-        <Skeleton className="h-5 w-14 rounded-md" />
-        <Skeleton className="h-5 w-16 rounded-md" />
+        <div className="h-5 w-14 bg-muted skeleton-shimmer rounded-md" />
+        <div className="h-5 w-16 bg-muted skeleton-shimmer rounded-md" />
       </div>
     </div>
   );
 }
 
-export function ProcessingSkeleton({ step, startTime }: { step: string; startTime?: number }) {
+export function ProcessingSkeleton({
+  step,
+  startTime,
+}: {
+  step: string;
+  startTime?: number;
+}) {
   const [elapsedTime, setElapsedTime] = React.useState(0);
 
   React.useEffect(() => {
     if (!startTime) return;
-    
+
     const interval = setInterval(() => {
       setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
     }, 100);
@@ -45,46 +46,47 @@ export function ProcessingSkeleton({ step, startTime }: { step: string; startTim
   }, [startTime]);
 
   const steps = [
-    { 
-      key: 'fetching', 
-      label: 'Fetching media',
-      duration: 2
+    {
+      key: "fetching",
+      label: "Fetching media",
+      duration: 2,
     },
-    { 
-      key: 'downloading', 
-      label: 'Downloading video',
-      duration: 3
+    {
+      key: "downloading",
+      label: "Downloading video",
+      duration: 3,
     },
-    { 
-      key: 'processing', 
-      label: 'Processing audio',
-      duration: 4
+    {
+      key: "processing",
+      label: "Processing audio",
+      duration: 4,
     },
-    { 
-      key: 'transcribing', 
-      label: 'Transcribing content',
-      duration: 8
+    {
+      key: "transcribing",
+      label: "Transcribing content",
+      duration: 8,
     },
-    { 
-      key: 'analyzing', 
-      label: 'Analyzing with AI',
-      duration: 10
+    {
+      key: "analyzing",
+      label: "Analyzing with AI",
+      duration: 10,
     },
-    { 
-      key: 'extracting', 
-      label: 'Extracting text',
-      duration: 5
+    {
+      key: "extracting",
+      label: "Extracting text",
+      duration: 5,
     },
-    { 
-      key: 'finalizing', 
-      label: 'Finalizing',
-      duration: 3
+    {
+      key: "finalizing",
+      label: "Finalizing",
+      duration: 3,
     },
   ];
 
-  const currentIndex = steps.findIndex(s => s.key === step);
+  const currentIndex = steps.findIndex((s) => s.key === step);
   const currentStep = steps[currentIndex] || steps[0];
-  const progress = currentIndex >= 0 ? ((currentIndex + 1) / steps.length) * 100 : 0;
+  const progress =
+    currentIndex >= 0 ? ((currentIndex + 1) / steps.length) * 100 : 0;
 
   return (
     <div className="bg-card border border-border rounded-2xl p-8 shadow-sm animate-fade-in max-w-2xl mx-auto">
@@ -97,7 +99,7 @@ export function ProcessingSkeleton({ step, startTime }: { step: string; startTim
           {elapsedTime}s
         </span>
       </div>
-      
+
       {/* Current Step */}
       <p className="text-sm text-muted-foreground mb-6">
         {currentStep.label}...
@@ -124,7 +126,9 @@ export function ProcessingSkeleton({ step, startTime }: { step: string; startTim
       {/* Info Message - Better positioned after progress */}
       <div className="mb-6 p-3.5 bg-secondary/50 rounded-lg border border-border/50">
         <p className="text-xs text-muted-foreground leading-relaxed">
-          This will take some time to extract your valuable details. We're analyzing the video, transcribing audio, and generating comprehensive insights.
+          This will take some time to extract your valuable details. We're
+          analyzing the video, transcribing audio, and generating comprehensive
+          insights.
         </p>
       </div>
 
@@ -136,19 +140,28 @@ export function ProcessingSkeleton({ step, startTime }: { step: string; startTim
           const isPending = index > currentIndex;
 
           return (
-            <div 
-              key={s.key} 
-              className="flex items-center gap-3"
-            >
-              <div className={cn(
-                "w-5 h-5 rounded-full flex items-center justify-center transition-all duration-200 shrink-0",
-                isComplete && "bg-foreground",
-                isActive && "bg-foreground",
-                isPending && "bg-muted"
-              )}>
+            <div key={s.key} className="flex items-center gap-3">
+              <div
+                className={cn(
+                  "w-5 h-5 rounded-full flex items-center justify-center transition-all duration-200 shrink-0",
+                  isComplete && "bg-foreground",
+                  isActive && "bg-foreground",
+                  isPending && "bg-muted"
+                )}
+              >
                 {isComplete ? (
-                  <svg className="w-3 h-3 text-background" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  <svg
+                    className="w-3 h-3 text-background"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={3}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                 ) : isActive ? (
                   <div className="w-2 h-2 bg-background rounded-full" />
@@ -156,12 +169,14 @@ export function ProcessingSkeleton({ step, startTime }: { step: string; startTim
                   <div className="w-2 h-2 bg-muted-foreground/30 rounded-full" />
                 )}
               </div>
-              <span className={cn(
-                "text-sm transition-colors duration-200 flex-1",
-                isActive && "text-foreground font-medium",
-                isComplete && "text-muted-foreground",
-                isPending && "text-muted-foreground/50"
-              )}>
+              <span
+                className={cn(
+                  "text-sm transition-colors duration-200 flex-1",
+                  isActive && "text-foreground font-medium",
+                  isComplete && "text-muted-foreground",
+                  isPending && "text-muted-foreground/50"
+                )}
+              >
                 {s.label}
               </span>
               {isActive && (
