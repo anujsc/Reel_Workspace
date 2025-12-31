@@ -17,6 +17,9 @@ services:
       - path: /*
         name: Referrer-Policy
         value: strict-origin-when-cross-origin
+      - path: /*
+        name: Cache-Control
+        value: no-cache
     routes:
       - type: rewrite
         source: /*
