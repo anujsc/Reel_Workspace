@@ -6,6 +6,7 @@ import {
   PrivateMediaError,
 } from "../utils/errors.js";
 import { InstagramMediaResult } from "./instagramFetcher.js";
+import { browserPool } from "./browserPool.js";
 
 /**
  * Puppeteer-based Instagram scraper configuration
@@ -128,16 +129,17 @@ export class InstagramPuppeteerScraper {
    */
   async scrapeInstagramReel(url: string): Promise<InstagramMediaResult> {
     console.log(`[Puppeteer Scraper] Starting scrape for: ${url}`);
+    const perfStart = Date.now();
 
     const browser = await this.initBrowser();
     const page = await browser.newPage();
 
     try {
+      // Set viewport for faster rendering (reduced resolution)
+      await page.setViewport({ width: 1280, height: 720 });
+
       // Enhanced stealth: Set user agent
       await page.setUserAgent(this.config.userAgent);
-
-      // Set viewport
-      await page.setViewport({ width: 1920, height: 1080 });
 
       // Set extra headers to look more like a real browser
       await page.setExtraHTTPHeaders({
@@ -146,16 +148,44 @@ export class InstagramPuppeteerScraper {
           "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
       });
 
-      // Navigate to Instagram URL with relaxed wait condition
-      console.log(`[Puppeteer Scraper] Navigating to URL...`);
-      await page.goto(url, {
-        waitUntil: "domcontentloaded", // Changed from networkidle2 (faster, more reliable)
-        timeout: 60000, // Increased timeout to 60s
+      // OPTIMIZATION: Enable request interception to block unnecessary resources
+      await page.setRequestInterception(true);
+      
+      page.on("request", (request) => {
+        const resourceType = request.resourceType();
+        const url = request.url();
+
+        // Block images, stylesheets, fonts, media (we only need HTML/scripts)
+        if (["image", "stylesheet", "font", "media"].includes(resourceType)) {
+          request.abort();
+        }
+        // Block third-party analytics/tracking
+        else if (
+          url.includes("analytics") ||
+          url.includes("ads") ||
+          url.includes("tracking") ||
+          url.includes("doubleclick") ||
+          url.includes("facebook.com/tr") ||
+          url.includes("google-analytics")
+        ) {
+          request.abort();
+        } else {
+          request.continue();
+        }
       });
 
-      // Wait for dynamic content to load (reduced from 3s to 1.5s)
+      // Navigate to Instagram URL with optimized wait condition
+      console.log(`[Puppeteer Scraper] Navigating to URL...`);
+      const navStart = Date.now();
+      await page.goto(url, {
+        waitUntil: "domcontentloaded", // Don't wait for all network activity
+        timeout: 15000, // Reduced from 60s to 15s
+      });
+      console.log(`[Puppeteer Scraper] Navigation: ${Date.now() - navStart}ms`);
+
+      // Reduced wait time for dynamic content
       console.log(`[Puppeteer Scraper] Waiting for content...`);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await new Promise((resolve) => setTimeout(resolve, 800)); // Reduced from 1500ms
 
       // Check if page requires login (private account)
       const isLoginRequired = await page.evaluate(() => {
@@ -265,6 +295,8 @@ export class InstagramPuppeteerScraper {
         }`
       );
     } finally {
+      const totalTime = Date.now() - perfStart;
+      console.log(`[Puppeteer Scraper] Total scrape time: ${totalTime}ms`);
       await page.close();
     }
   }
@@ -461,17 +493,127 @@ export class InstagramPuppeteerScraper {
 }
 
 /**
- * Fetch Instagram media using Puppeteer scraper
+ * Fetch Instagram media using Puppeteer scraper with browser pooling
  */
 export async function fetchInstagramMediaWithPuppeteer(
   url: string
 ): Promise<InstagramMediaResult> {
-  const scraper = new InstagramPuppeteerScraper();
+  // Use browser pool instead of creating new instance
+  const page = await browserPool.getNewPage();
 
   try {
-    const result = await scraper.scrapeInstagramReel(url);
-    return result;
+    // Set viewport for faster rendering
+    await page.setViewport({ width: 1280, height: 720 });
+
+    // Set user agent
+    const userAgent =
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+    await page.setUserAgent(userAgent);
+
+    // Set extra headers
+    await page.setExtraHTTPHeaders({
+      "Accept-Language": "en-US,en;q=0.9",
+      Accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+    });
+
+    // OPTIMIZATION: Enable request interception
+    await page.setRequestInterception(true);
+
+    page.on("request", (request) => {
+      const resourceType = request.resourceType();
+      const reqUrl = request.url();
+
+      // Block unnecessary resources
+      if (["image", "stylesheet", "font", "media"].includes(resourceType)) {
+        request.abort();
+      } else if (
+        reqUrl.includes("analytics") ||
+        reqUrl.includes("ads") ||
+        reqUrl.includes("tracking") ||
+        reqUrl.includes("doubleclick") ||
+        reqUrl.includes("facebook.com/tr")
+      ) {
+        request.abort();
+      } else {
+        request.continue();
+      }
+    });
+
+    // Navigate with optimized settings
+    console.log(`[Puppeteer] Navigating to ${url}...`);
+    await page.goto(url, {
+      waitUntil: "domcontentloaded",
+      timeout: 15000,
+    });
+
+    // Reduced wait time
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
+    // Check for private content
+    const isLoginRequired = await page.evaluate(() => {
+      // @ts-ignore - document is available in browser context
+      const doc = document as any;
+      return (
+        doc.body.innerText.includes("Log in to see photos") ||
+        doc.body.innerText.includes("This account is private")
+      );
+    });
+
+    if (isLoginRequired) {
+      throw new PrivateMediaError(
+        "This content is private or requires login"
+      );
+    }
+
+    // Create scraper instance to use extraction methods
+    const scraper = new InstagramPuppeteerScraper();
+
+    // Try extraction methods
+    const scriptVideo = await scraper["extractFromScripts"](page);
+    if (scriptVideo && !scriptVideo.videoUrl.startsWith("blob:")) {
+      return scriptVideo;
+    }
+
+    const jsonLdVideo = await scraper["extractFromJsonLd"](page);
+    if (jsonLdVideo && !jsonLdVideo.videoUrl.startsWith("blob:")) {
+      return jsonLdVideo;
+    }
+
+    const videoUrl = await page.evaluate(() => {
+      // @ts-ignore - document is available in browser context
+      const doc = document as any;
+      const videoElement = doc.querySelector("video");
+      if (
+        videoElement &&
+        videoElement.src &&
+        !videoElement.src.startsWith("blob:")
+      ) {
+        return videoElement.src;
+      }
+
+      const sourceElement = doc.querySelector("video source");
+      if (sourceElement && sourceElement.getAttribute("src")) {
+        const src = sourceElement.getAttribute("src");
+        if (src && !src.startsWith("blob:")) {
+          return src;
+        }
+      }
+
+      return null;
+    });
+
+    if (videoUrl) {
+      const metadata = await scraper["extractMetadata"](page);
+      return {
+        sourceUrl: url,
+        videoUrl,
+        ...metadata,
+      };
+    }
+
+    throw new MediaNotFoundError("Could not find video URL");
   } finally {
-    await scraper.closeBrowser();
+    await browserPool.closePage(page);
   }
 }

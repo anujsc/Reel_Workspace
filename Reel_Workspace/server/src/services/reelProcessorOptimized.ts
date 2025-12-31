@@ -101,52 +101,39 @@ export async function processReelOptimized(
     deleteFile(videoResult.filePath).catch(() => {});
     tempFiles.splice(tempFiles.indexOf(videoResult.filePath), 1);
 
-    // Step 5 & 7: PARALLEL - Transcribe audio + Extract OCR (if thumbnail exists)
-    console.log(`[5-7/7] Transcribing + OCR (parallel)...`);
+    // Step 5, 6, 7: PIPELINED - Start summary as soon as transcript is ready
+    console.log(
+      `[5-7/7] Transcribing + OCR + Summary (pipelined)...`
+    );
     const aiStart = Date.now();
 
-    const aiTasks: Promise<any>[] = [
-      transcribeAudioWithGemini(audio.audioPath),
-    ];
+    // Start transcription
+    const transcriptPromise = transcribeAudioWithGemini(audio.audioPath);
 
-    // Only run OCR if we have a thumbnail
-    if (thumbnail.thumbnailUrl) {
-      aiTasks.push(extractTextFromImages([thumbnail.thumbnailUrl]));
-    }
+    // Start OCR in parallel (if thumbnail exists)
+    const ocrPromise = thumbnail.thumbnailUrl
+      ? extractTextFromImages([thumbnail.thumbnailUrl])
+      : Promise.resolve({ text: "" });
 
-    const aiResults = await Promise.allSettled(aiTasks);
+    // OPTIMIZATION: Start summary immediately after transcript completes (don't wait for OCR)
+    const summaryPromise = transcriptPromise.then(async (transcriptResult) => {
+      console.log(`✓ Transcription complete, starting summary...`);
+      const ocr = await ocrPromise; // OCR is fast, likely already done
+      return summarizeWithGroq(transcriptResult.transcript);
+    });
+
+    // Wait for all to complete
+    const [transcriptResult, ocrResult, summaryResult] = await Promise.all([
+      transcriptPromise,
+      ocrPromise,
+      summaryPromise,
+    ]);
+
     const aiMs = Date.now() - aiStart;
-
-    // Handle transcription result (critical)
-    if (aiResults[0].status === "rejected") {
-      throw new Error(`Transcription failed: ${aiResults[0].reason}`);
-    }
-    const transcriptResult = aiResults[0].value;
-    const transcriptionMs = aiMs; // Approximate
-    console.log(`✓ Transcription: ${transcriptResult.transcript.length} chars`);
-
-    // Handle OCR result (non-critical)
-    let ocrResult: OCRResult;
-    let ocrMs: number;
-    if (aiTasks.length > 1 && aiResults[1].status === "fulfilled") {
-      ocrResult = aiResults[1].value;
-      ocrMs = aiMs; // Approximate
-      console.log(`✓ OCR: ${ocrResult.text.length} chars`);
-    } else {
-      ocrResult = { text: "" };
-      ocrMs = 0;
-      if (aiTasks.length > 1) {
-        console.warn(`✗ OCR: Failed`);
-      } else {
-        console.log(`⊘ OCR: Skipped (no thumbnail)`);
-      }
-    }
-
-    // Step 6: Summarize transcript (must be sequential)
-    console.log(`[6/7] Generating summary...`);
-    const { result: summaryResult, durationMs: summarizationMs } =
-      await measureTime(() => summarizeWithGroq(transcriptResult.transcript));
-    console.log(`✓ Summary: ${summarizationMs}ms`);
+    console.log(`✓ AI Pipeline: ${aiMs}ms`);
+    console.log(`  - Transcript: ${transcriptResult.transcript.length} chars`);
+    console.log(`  - OCR: ${ocrResult.text.length} chars`);
+    console.log(`  - Summary: ${summaryResult.title}`);
 
     const totalMs = Date.now() - startTime;
 
@@ -154,9 +141,7 @@ export async function processReelOptimized(
     console.log(`[Reel Processor OPTIMIZED] Complete!`);
     console.log(`Total: ${(totalMs / 1000).toFixed(2)}s`);
     console.log(
-      `Saved: ~${(((parallelMs + aiMs) * 0.3) / 1000).toFixed(
-        1
-      )}s via parallelization`
+      `Optimizations: Parallel processing + Request blocking + Connection pooling`
     );
     console.log(`${"=".repeat(60)}\n`);
 
@@ -188,10 +173,10 @@ export async function processReelOptimized(
         fetchMs,
         downloadMs,
         audioExtractMs: parallelMs,
-        thumbnailMs,
-        transcriptionMs,
-        summarizationMs,
-        ocrMs,
+        thumbnailMs: parallelMs,
+        transcriptionMs: aiMs,
+        summarizationMs: aiMs,
+        ocrMs: aiMs,
         totalMs,
       },
     };

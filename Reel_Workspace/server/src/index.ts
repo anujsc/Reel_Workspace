@@ -11,6 +11,7 @@ import { searchRoutes } from "./routes/search.routes.js";
 import { shareRoutes } from "./routes/share.routes.js";
 import scraperRoutes from "./routes/scraper.routes.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+import { browserPool } from "./services/browserPool.js";
 
 // Load environment variables
 dotenv.config();
@@ -126,11 +127,17 @@ const startServer = async () => {
 // Graceful shutdown
 process.on("SIGTERM", async () => {
   console.log("⚠️  SIGTERM received, shutting down gracefully...");
+  console.log("[Shutdown] Closing browser pool...");
+  await browserPool.shutdown();
+  console.log("[Shutdown] Complete");
   process.exit(0);
 });
 
 process.on("SIGINT", async () => {
   console.log("⚠️  SIGINT received, shutting down gracefully...");
+  console.log("[Shutdown] Closing browser pool...");
+  await browserPool.shutdown();
+  console.log("[Shutdown] Complete");
   process.exit(0);
 });
 

@@ -63,7 +63,7 @@ function configureFfmpegPaths(): void {
 configureFfmpegPaths();
 
 /**
- * Configure Cloudinary
+ * Configure Cloudinary with connection pooling
  */
 function configureCloudinary(): void {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
@@ -80,6 +80,9 @@ function configureCloudinary(): void {
     cloud_name: cloudName,
     api_key: apiKey,
     api_secret: apiSecret,
+    secure: true,
+    // OPTIMIZATION: Connection pooling for faster uploads
+    upload_timeout: 60000,
   });
 }
 

@@ -2,6 +2,8 @@ import axios, { AxiosError } from "axios";
 import fs from "fs/promises";
 import { createWriteStream } from "fs";
 import path from "path";
+import http from "http";
+import https from "https";
 import { VideoDownloadError, FileSystemError } from "../utils/errors.js";
 
 /**
@@ -16,6 +18,21 @@ export interface DownloadedVideoResult {
 const TEMP_VIDEO_DIR = path.join(process.cwd(), "temp", "videos");
 const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB
 const DOWNLOAD_TIMEOUT = 120000; // 2 minutes
+
+// OPTIMIZATION: HTTP/HTTPS agent pooling for connection reuse
+const httpAgent = new http.Agent({
+  keepAlive: true,
+  maxSockets: 50,
+  maxFreeSockets: 10,
+  timeout: 60000,
+});
+
+const httpsAgent = new https.Agent({
+  keepAlive: true,
+  maxSockets: 50,
+  maxFreeSockets: 10,
+  timeout: 60000,
+});
 
 /**
  * Ensure temp directory exists
@@ -54,6 +71,7 @@ export async function downloadVideo(
 
   console.log(`[Video Downloader] Starting download from ${videoUrl}`);
   console.log(`[Video Downloader] Saving to ${filePath}`);
+  const perfStart = Date.now();
 
   try {
     const response = await axios({
@@ -63,6 +81,9 @@ export async function downloadVideo(
       timeout: DOWNLOAD_TIMEOUT,
       maxContentLength: MAX_FILE_SIZE,
       maxBodyLength: MAX_FILE_SIZE,
+      // OPTIMIZATION: Use connection pooling agents
+      httpAgent: httpAgent,
+      httpsAgent: httpsAgent,
     });
 
     // Check content length
@@ -118,12 +139,13 @@ export async function downloadVideo(
       response.data.pipe(writer);
 
       writer.on("finish", () => {
+        const downloadTime = Date.now() - perfStart;
         console.log(
           `[Video Downloader] Download complete: ${(
             downloadedBytes /
             1024 /
             1024
-          ).toFixed(2)}MB`
+          ).toFixed(2)}MB in ${downloadTime}ms`
         );
         resolve({
           filePath,

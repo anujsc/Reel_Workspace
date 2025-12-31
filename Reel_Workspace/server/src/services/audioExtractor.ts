@@ -107,7 +107,7 @@ function getVideoDuration(videoPath: string): Promise<number> {
 }
 
 /**
- * Extract audio from video to MP3
+ * Extract audio from video to MP3 with optimized FFmpeg settings
  */
 export async function extractAudioToMp3(
   videoPath: string
@@ -119,6 +119,7 @@ export async function extractAudioToMp3(
 
   console.log(`[Audio Extractor] Extracting audio from ${videoPath}`);
   console.log(`[Audio Extractor] Output: ${audioPath}`);
+  const perfStart = Date.now();
 
   try {
     // First, get video duration
@@ -139,33 +140,53 @@ export async function extractAudioToMp3(
       );
     }
 
-    // Extract audio using ffmpeg
-    await new Promise<void>((resolve, reject) => {
-      ffmpeg(videoPath)
-        .toFormat("mp3")
-        .audioBitrate(128)
-        .audioFrequency(44100)
-        .audioChannels(2)
-        .on("start", (commandLine) => {
-          console.log(`[Audio Extractor] FFmpeg command: ${commandLine}`);
-        })
-        .on("progress", (progress) => {
-          if (progress.percent) {
-            console.log(
-              `[Audio Extractor] Progress: ${progress.percent.toFixed(1)}%`
-            );
-          }
-        })
-        .on("end", () => {
-          console.log(`[Audio Extractor] Audio extraction complete`);
-          resolve();
-        })
-        .on("error", (err) => {
-          console.error(`[Audio Extractor] FFmpeg error:`, err);
-          reject(err);
-        })
-        .save(audioPath);
-    });
+    // OPTIMIZATION: Try codec copy first (instant if source is compatible)
+    let extractionSuccess = false;
+    
+    try {
+      console.log(`[Audio Extractor] Attempting fast codec copy...`);
+      await extractAudioWithCopy(videoPath, audioPath);
+      extractionSuccess = true;
+      console.log(`[Audio Extractor] ✓ Fast codec copy successful`);
+    } catch (copyError) {
+      console.log(`[Audio Extractor] Codec copy failed, re-encoding with optimizations...`);
+      
+      // Fallback: Extract with optimized re-encoding
+      await new Promise<void>((resolve, reject) => {
+        ffmpeg(videoPath)
+          .toFormat("mp3")
+          .audioBitrate(128)
+          .audioFrequency(44100)
+          .audioChannels(2)
+          // OPTIMIZATION: Multi-threading and fast preset
+          .outputOptions([
+            "-threads", "0",           // Auto-detect CPU cores
+            "-vn",                     // Skip video processing entirely
+            "-preset", "ultrafast",    // Fastest encoding preset
+          ])
+          .on("start", (commandLine) => {
+            console.log(`[Audio Extractor] FFmpeg command: ${commandLine}`);
+          })
+          .on("progress", (progress) => {
+            if (progress.percent) {
+              console.log(
+                `[Audio Extractor] Progress: ${progress.percent.toFixed(1)}%`
+              );
+            }
+          })
+          .on("end", () => {
+            console.log(`[Audio Extractor] Audio extraction complete`);
+            resolve();
+          })
+          .on("error", (err) => {
+            console.error(`[Audio Extractor] FFmpeg error:`, err);
+            reject(err);
+          })
+          .save(audioPath);
+      });
+      
+      extractionSuccess = true;
+    }
 
     // Verify output file exists
     try {
@@ -173,9 +194,11 @@ export async function extractAudioToMp3(
       if (stats.size === 0) {
         throw new AudioExtractionError("Extracted audio file is empty");
       }
+      const extractTime = Date.now() - perfStart;
       console.log(
         `[Audio Extractor] Audio file size: ${(stats.size / 1024).toFixed(2)}KB`
       );
+      console.log(`[Audio Extractor] Extraction time: ${extractTime}ms`);
     } catch (error) {
       throw new AudioExtractionError(
         `Audio file verification failed: ${
@@ -210,6 +233,36 @@ export async function extractAudioToMp3(
       }`
     );
   }
+}
+
+/**
+ * Try to extract audio using codec copy (no re-encoding)
+ * This is much faster but only works if source codec is compatible
+ */
+async function extractAudioWithCopy(
+  videoPath: string,
+  outputPath: string
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error("Codec copy timeout"));
+    }, 3000); // Should be instant, timeout after 3s
+
+    ffmpeg(videoPath)
+      .outputOptions([
+        "-vn",              // No video
+        "-acodec", "copy",  // Copy audio stream without re-encoding
+      ])
+      .on("end", () => {
+        clearTimeout(timeout);
+        resolve();
+      })
+      .on("error", (err) => {
+        clearTimeout(timeout);
+        reject(err);
+      })
+      .save(outputPath);
+  });
 }
 
 /**
