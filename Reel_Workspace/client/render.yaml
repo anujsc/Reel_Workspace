@@ -4,7 +4,7 @@ services:
     env: static
     region: oregon
     plan: free
-    rootDir: client
+    rootDir: Reel_Workspace/client
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
     headers:
