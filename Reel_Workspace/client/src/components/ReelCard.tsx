@@ -120,7 +120,7 @@ export function ReelCard({ reel, highlightQuery }: ReelCardProps) {
           </div>
 
           {/* Action Menu */}
-          <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex-shrink-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
