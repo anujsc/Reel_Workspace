@@ -6,7 +6,7 @@ services:
     plan: free
     rootDir: Reel_Workspace/client
     buildCommand: npm ci && npm run build
-    staticPublishPath: ./dist
+    staticPublishPath: ./build
     headers:
       - path: /*
         name: X-Frame-Options
