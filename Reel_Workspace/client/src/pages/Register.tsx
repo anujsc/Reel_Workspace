@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InlineLoader } from "@/components/Loader";
+import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -102,7 +103,12 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background">
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background relative">
+      {/* Dark Mode Toggle - Top Right */}
+      <div className="absolute top-4 right-4">
+        <DarkModeToggle variant="ghost" size="icon" />
+      </div>
+
       {/* Logo */}
       <div className="mb-8 animate-slide-up">
         <div className="flex items-center justify-center gap-3 mb-2">

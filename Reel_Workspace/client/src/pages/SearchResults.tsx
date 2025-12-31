@@ -7,6 +7,7 @@ import { SkeletonWrapper } from "@/components/SkeletonWrapper";
 import { FilterPanel, FilterState } from "@/components/FilterPanel";
 import { Sidebar } from "@/components/Sidebar";
 import { StudyMode } from "@/components/StudyMode";
+import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { useFolders } from "@/hooks/useFolders";
 import { useReels } from "@/hooks/useReels";
 import { Button } from "@/components/ui/button";
@@ -260,8 +261,16 @@ export default function SearchResults() {
               availableTags={availableTags}
             />
 
-            {/* Logout */}
-            <Button variant="ghost" size="icon" onClick={handleLogout}>
+            {/* Dark Mode Toggle */}
+            <DarkModeToggle variant="ghost" size="icon" />
+
+            {/* Logout - Hidden on mobile */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleLogout}
+              className="hidden lg:flex"
+            >
               <LogOut className="w-4 h-4" />
             </Button>
           </div>

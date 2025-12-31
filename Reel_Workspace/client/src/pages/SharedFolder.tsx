@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Reel, Folder } from "@/types/reel";
 import { Button } from "@/components/ui/button";
+import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { ArrowLeft, ExternalLink, Eye } from "lucide-react";
 import axios from "axios";
 import { useToast } from "@/hooks/use-toast";
@@ -90,9 +91,12 @@ export default function SharedFolder() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Eye className="w-4 h-4" />
-              <span>{viewCount} views</span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Eye className="w-4 h-4" />
+                <span>{viewCount} views</span>
+              </div>
+              <DarkModeToggle variant="ghost" size="icon" />
             </div>
           </div>
           {expiresAt && (

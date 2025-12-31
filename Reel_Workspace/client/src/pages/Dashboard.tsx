@@ -10,6 +10,7 @@ import { SkeletonWrapper } from "@/components/SkeletonWrapper";
 import { Sidebar } from "@/components/Sidebar";
 import { StudyMode } from "@/components/StudyMode";
 import { InlineLoader } from "@/components/Loader";
+import { DarkModeToggle } from "@/components/DarkModeToggle";
 import {
   Search,
   LogOut,
@@ -187,6 +188,9 @@ export default function Dashboard() {
             </Button>
             <img src="/instagram-logo.png" alt="ReelMind" className="w-6 h-6" />
             <h1 className="text-base font-semibold">ReelMind</h1>
+            <div className="ml-auto">
+              <DarkModeToggle variant="ghost" size="icon" />
+            </div>
           </div>
         </header>
 

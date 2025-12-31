@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, Trash2, Edit2, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageLoader } from "@/components/Loader";
+import { DarkModeToggle } from "@/components/DarkModeToggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -76,6 +77,7 @@ export default function ReelDetail() {
 
           {/* Action Buttons - Desktop */}
           <div className="hidden md:flex items-center gap-3">
+            <DarkModeToggle variant="ghost" size="icon" />
             <Button
               variant="outline"
               size="sm"
@@ -97,7 +99,8 @@ export default function ReelDetail() {
           </div>
 
           {/* Action Menu - Mobile */}
-          <div className="md:hidden">
+          <div className="md:hidden flex items-center gap-2">
+            <DarkModeToggle variant="ghost" size="icon" />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button

@@ -24,6 +24,7 @@ import { CreateFolderModal } from "@/components/modals/CreateFolderModal";
 import { RenameFolderModal } from "@/components/modals/RenameFolderModal";
 import { DeleteFolderDialog } from "@/components/modals/DeleteFolderDialog";
 import { ShareModal } from "@/components/share/ShareModal";
+import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { Folder } from "@/lib/types";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -244,15 +245,18 @@ export function Sidebar({
         </nav>
 
         {/* Footer - User Profile & Logout */}
-        <div className="p-3 border-t border-[hsl(var(--sidebar-border))]">
-          <Button
-            variant="ghost"
-            onClick={handleLogout}
-            className="w-full justify-start gap-2 h-10 text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-all"
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="font-medium">Sign Out</span>
-          </Button>
+        <div className="p-3 border-t border-[hsl(var(--sidebar-border))] space-y-1">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              onClick={handleLogout}
+              className="flex-1 justify-start gap-2 h-10 text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-all"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="font-medium">Sign Out</span>
+            </Button>
+            <DarkModeToggle variant="ghost" size="icon" />
+          </div>
         </div>
       </aside>
 
