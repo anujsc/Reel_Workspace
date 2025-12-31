@@ -84,7 +84,7 @@ export function Sidebar({
         {/* Logo - Height matches header */}
         <div className="px-5 h-[57px] flex items-center gap-2 border-b border-[hsl(var(--sidebar-border))]">
           <img
-            src="/reelmind-icon.svg"
+            src="/instagram-logo.png"
             alt="ReelMind"
             className="w-8 h-8 flex-shrink-0"
           />

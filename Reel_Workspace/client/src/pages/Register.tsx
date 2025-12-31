@@ -106,7 +106,7 @@ export default function Register() {
       {/* Logo */}
       <div className="mb-8 animate-slide-up">
         <div className="flex items-center justify-center gap-3 mb-2">
-          <img src="/reelmind-icon.svg" alt="ReelMind" className="w-12 h-12" />
+          <img src="/instagram-logo.png" alt="ReelMind" className="w-12 h-12" />
           <h1 className="text-3xl font-bold text-gradient">ReelMind</h1>
         </div>
         <p className="text-muted-foreground text-center">

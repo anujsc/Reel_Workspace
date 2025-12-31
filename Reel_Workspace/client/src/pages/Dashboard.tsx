@@ -185,7 +185,7 @@ export default function Dashboard() {
             >
               <Menu className="w-5 h-5" />
             </Button>
-            <img src="/reelmind-icon.svg" alt="ReelMind" className="w-6 h-6" />
+            <img src="/instagram-logo.png" alt="ReelMind" className="w-6 h-6" />
             <h1 className="text-base font-semibold">ReelMind</h1>
           </div>
         </header>
