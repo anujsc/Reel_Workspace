@@ -28,6 +28,53 @@ export interface Reel {
   examples?: string[];
   relatedTopics?: string[];
   detailedExplanation?: string;
+
+  // NEW: Multimodal fields
+  rawData?: {
+    audioTranscript: string;
+    visualTexts: Array<{
+      frameTimestamp: number;
+      text: string;
+      confidence: number;
+    }>;
+    instagramCaption?: string;
+    instagramDescription?: string;
+  };
+  visualInsights?: {
+    toolsAndPlatforms?: VisualInsight;
+    websitesAndUrls?: VisualInsight;
+    brandsAndProducts?: VisualInsight;
+    listsAndSequences?: VisualInsight;
+    numbersAndMetrics?: VisualInsight;
+    pricesAndCosts?: VisualInsight;
+    recommendations?: VisualInsight;
+  };
+  multimodalMetadata?: {
+    processingVersion: string;
+    frameCount: number;
+    ocrFrames: number[];
+    hasVisualText: boolean;
+    hasAudioTranscript: boolean;
+    hasMetadata: boolean;
+  };
+}
+
+export interface VisualInsight {
+  type: string;
+  category: string;
+  items: InsightItem[];
+  sourceFrames?: number[];
+  confidence: number;
+}
+
+export interface InsightItem {
+  value: string;
+  context?: string;
+  metadata?: {
+    price?: string;
+    url?: string;
+    description?: string;
+  };
 }
 
 export interface Folder {

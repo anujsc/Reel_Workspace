@@ -8,7 +8,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "migrate:fix-reel-index": "tsx src/scripts/fix-reel-index.ts"
+    "migrate:fix-reel-index": "tsx src/scripts/fix-reel-index.ts",
+    "migrate:to-v2": "tsx src/scripts/migrate-to-v2.ts"
   },
   "keywords": [
     "instagram",

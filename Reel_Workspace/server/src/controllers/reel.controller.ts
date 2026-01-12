@@ -4,6 +4,7 @@ import { Reel } from "../models/Reel.js";
 import { Folder } from "../models/Folder.js";
 import { processReel } from "../services/reelProcessor.js";
 import { processReelOptimized } from "../services/reelProcessorOptimized.js";
+import { processReelV2 } from "../services/reelProcessorV2.js";
 import {
   successResponse,
   createdResponse,
@@ -17,7 +18,8 @@ import {
 } from "../utils/errors.js";
 import mongoose from "mongoose";
 
-// Use optimized processor by default (can be toggled via env var)
+// Use V2 multimodal processor by default (can be toggled via env var)
+const USE_V2_PROCESSOR = process.env.USE_V2_PROCESSOR !== "false";
 const USE_OPTIMIZED = process.env.USE_OPTIMIZED_PROCESSOR !== "false";
 
 /**
@@ -66,10 +68,25 @@ export const extractReel = async (
     }
 
     console.log(`[Reel Controller] Processing reel...`);
-    // Process the reel using orchestrator (optimized version by default)
-    const processingResult = USE_OPTIMIZED
-      ? await processReelOptimized(instagramUrl)
-      : await processReel(instagramUrl);
+    // Process the reel using V2 multimodal processor by default
+    let processingResult;
+    try {
+      processingResult = USE_V2_PROCESSOR
+        ? await processReelV2(instagramUrl)
+        : USE_OPTIMIZED
+        ? await processReelOptimized(instagramUrl)
+        : await processReel(instagramUrl);
+    } catch (error: any) {
+      // If V2 fails at fetch stage, try V1 as fallback
+      if (USE_V2_PROCESSOR && error.message?.includes("fetch")) {
+        console.log(`[Reel Controller] V2 fetch failed, trying V1 fallback...`);
+        processingResult = USE_OPTIMIZED
+          ? await processReelOptimized(instagramUrl)
+          : await processReel(instagramUrl);
+      } else {
+        throw error;
+      }
+    }
     console.log(`[Reel Controller] ✓ Reel processed successfully`);
 
     // Find or create folder based on suggested category
@@ -92,7 +109,7 @@ export const extractReel = async (
     }
 
     console.log(`[Reel Controller] Saving reel to database...`);
-    // Create reel document
+    // Create reel document with V2 multimodal fields
     const reel = await Reel.create({
       userId,
       folderId: folder._id,
@@ -115,6 +132,11 @@ export const extractReel = async (
       tags: processingResult.tags,
       ocrText: processingResult.ocrText,
       durationSeconds: processingResult.metadata?.durationSeconds,
+
+      // NEW: V2 multimodal fields
+      rawData: (processingResult as any).rawData,
+      visualInsights: (processingResult as any).visualInsights,
+      multimodalMetadata: (processingResult as any).multimodalMetadata,
     });
 
     // Increment folder reel count

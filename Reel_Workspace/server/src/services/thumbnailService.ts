@@ -1,7 +1,7 @@
 import ffmpeg from "fluent-ffmpeg";
 import fs from "fs/promises";
 import path from "path";
-import { v2 as cloudinary } from "cloudinary";
+import cloudinary from "../config/cloudinary.js";
 import {
   ThumbnailGenerationError,
   CloudinaryUploadError,

@@ -118,11 +118,7 @@ export async function fetchInstagramMedia(
   }
 
   // Method 2: Try yt-dlp (only if explicitly enabled)
-  if (
-    useYtDlp &&
-    scrapingMethod !== "puppeteer" &&
-    scrapingMethod !== "cobalt"
-  ) {
+  if (useYtDlp) {
     try {
       console.log(`[Instagram Fetcher] Attempting fetch with yt-dlp...`);
       const result = await fetchInstagramMediaWithYtDlp(cleanUrl);
@@ -130,7 +126,7 @@ export async function fetchInstagramMedia(
       return result;
     } catch (error) {
       console.warn(
-        `[Instagram Fetcher] yt-dlp failed, trying Cobalt fallback...`
+        `[Instagram Fetcher] yt-dlp failed, trying other fallback methods...`
       );
       console.warn(
         `[Instagram Fetcher] yt-dlp error:`,
@@ -138,9 +134,9 @@ export async function fetchInstagramMedia(
       );
       // Continue to fallback methods
     }
-  } else if (!useYtDlp) {
+  } else {
     console.log(
-      `[Instagram Fetcher] yt-dlp disabled (not suitable for deployment)`
+      `[Instagram Fetcher] yt-dlp disabled (set USE_YTDLP=true to enable)`
     );
   }
 

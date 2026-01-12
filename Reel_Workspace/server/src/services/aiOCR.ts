@@ -172,7 +172,7 @@ Extract the text:`;
 }
 
 /**
- * Extract text from multiple images
+ * Extract text from multiple images with timestamps
  */
 export async function extractTextFromImages(
   imageUrls: string[]
@@ -213,6 +213,50 @@ export async function extractTextFromImages(
 
     throw new OcrError(
       `Failed to process multiple images: ${
+        error instanceof Error ? error.message : error
+      }`
+    );
+  }
+}
+
+/**
+ * Extract text from frames with timestamp information
+ */
+export async function extractTextFromFrames(
+  frames: Array<{ timestamp: number; imageUrl: string }>
+): Promise<Array<{ timestamp: number; text: string; confidence: number }>> {
+  if (frames.length === 0) {
+    return [];
+  }
+
+  console.log(`[AI OCR] Processing ${frames.length} frames with timestamps`);
+
+  try {
+    // Process all frames in parallel
+    const results = await Promise.all(
+      frames.map(async (frame) => {
+        const ocrResult = await extractTextFromImage(frame.imageUrl);
+        return {
+          timestamp: frame.timestamp,
+          text: ocrResult.text,
+          confidence: ocrResult.confidence || 0.8,
+        };
+      })
+    );
+
+    const successfulResults = results.filter((r) => r.text.length > 0);
+    console.log(
+      `[AI OCR] Successfully extracted text from ${successfulResults.length}/${frames.length} frames`
+    );
+
+    return results;
+  } catch (error) {
+    if (error instanceof OcrError) {
+      throw error;
+    }
+
+    throw new OcrError(
+      `Failed to process frames: ${
         error instanceof Error ? error.message : error
       }`
     );

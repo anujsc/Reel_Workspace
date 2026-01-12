@@ -3,20 +3,22 @@ import { Reel } from "../lib/types";
 import { AIInsightsTab } from "./tabs/AIInsightsTab";
 import { TranscriptTab } from "./tabs/TranscriptTab";
 import { LearnQuizTab } from "./tabs/LearnQuizTab";
+import { VisualInsightsTab } from "./tabs/VisualInsightsTab";
 import { cn } from "@/lib/utils";
-import { Sparkles, FileText, GraduationCap } from "lucide-react";
+import { Sparkles, FileText, GraduationCap, Eye } from "lucide-react";
 
 interface ReelKnowledgeProps {
   reel: Reel;
 }
 
-type TabType = "insights" | "learn" | "transcript";
+type TabType = "insights" | "visual" | "learn" | "transcript";
 
 export function ReelKnowledge({ reel }: ReelKnowledgeProps) {
   const [activeTab, setActiveTab] = useState<TabType>("insights");
 
   const tabs = [
     { id: "insights" as TabType, label: "AI Insights", icon: Sparkles },
+    { id: "visual" as TabType, label: "Visual Insights", icon: Eye },
     { id: "learn" as TabType, label: "Learn & Quiz", icon: GraduationCap },
     { id: "transcript" as TabType, label: "Transcript", icon: FileText },
   ];
@@ -50,6 +52,7 @@ export function ReelKnowledge({ reel }: ReelKnowledgeProps) {
       {/* Tab Content with Animation */}
       <div className="flex-1 py-6 animate-fade-in">
         {activeTab === "insights" && <AIInsightsTab reel={reel} />}
+        {activeTab === "visual" && <VisualInsightsTab reel={reel} />}
         {activeTab === "learn" && <LearnQuizTab reel={reel} />}
         {activeTab === "transcript" && <TranscriptTab reel={reel} />}
       </div>

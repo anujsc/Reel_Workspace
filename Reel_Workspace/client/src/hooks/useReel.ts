@@ -8,6 +8,17 @@ export const useReel = (id: string | undefined) => {
     queryFn: async (): Promise<Reel> => {
       const response = await api.get(`/api/reel/${id}`);
       const reel = response.data.data;
+
+      // Debug: Log multimodal data
+      console.log("[useReel] Fetched reel:", {
+        id: reel.id || reel._id,
+        title: reel.title,
+        hasRawData: !!reel.rawData,
+        hasVisualInsights: !!reel.visualInsights,
+        hasMultimodalMetadata: !!reel.multimodalMetadata,
+        visualTextsCount: reel.rawData?.visualTexts?.length || 0,
+      });
+
       // Map backend fields to frontend types
       return {
         id: reel.id || reel._id,
@@ -42,6 +53,10 @@ export const useReel = (id: string | undefined) => {
         detailedExplanation: reel.detailedExplanation || "",
         createdAt: reel.createdAt,
         updatedAt: reel.updatedAt,
+        // NEW: Multimodal fields
+        rawData: reel.rawData,
+        visualInsights: reel.visualInsights,
+        multimodalMetadata: reel.multimodalMetadata,
       };
     },
     enabled: !!id,

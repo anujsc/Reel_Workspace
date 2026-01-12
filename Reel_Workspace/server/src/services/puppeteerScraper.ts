@@ -150,7 +150,7 @@ export class InstagramPuppeteerScraper {
 
       // OPTIMIZATION: Enable request interception to block unnecessary resources
       await page.setRequestInterception(true);
-      
+
       page.on("request", (request) => {
         const resourceType = request.resourceType();
         const url = request.url();
@@ -520,32 +520,48 @@ export async function fetchInstagramMediaWithPuppeteer(
     // OPTIMIZATION: Enable request interception
     await page.setRequestInterception(true);
 
-    page.on("request", (request) => {
-      const resourceType = request.resourceType();
-      const reqUrl = request.url();
+    const requestHandler = (request: any) => {
+      try {
+        const resourceType = request.resourceType();
+        const reqUrl = request.url();
 
-      // Block unnecessary resources
-      if (["image", "stylesheet", "font", "media"].includes(resourceType)) {
-        request.abort();
-      } else if (
-        reqUrl.includes("analytics") ||
-        reqUrl.includes("ads") ||
-        reqUrl.includes("tracking") ||
-        reqUrl.includes("doubleclick") ||
-        reqUrl.includes("facebook.com/tr")
-      ) {
-        request.abort();
-      } else {
-        request.continue();
+        // Block unnecessary resources
+        if (["image", "stylesheet", "font", "media"].includes(resourceType)) {
+          request.abort();
+        } else if (
+          reqUrl.includes("analytics") ||
+          reqUrl.includes("ads") ||
+          reqUrl.includes("tracking") ||
+          reqUrl.includes("doubleclick") ||
+          reqUrl.includes("facebook.com/tr")
+        ) {
+          request.abort();
+        } else {
+          request.continue();
+        }
+      } catch (error) {
+        // Ignore errors from aborted/closed requests
+        console.warn(
+          `[Puppeteer] Request handler error (non-critical):`,
+          error instanceof Error ? error.message : error
+        );
       }
-    });
+    };
+
+    page.on("request", requestHandler);
 
     // Navigate with optimized settings
     console.log(`[Puppeteer] Navigating to ${url}...`);
-    await page.goto(url, {
-      waitUntil: "domcontentloaded",
-      timeout: 15000,
-    });
+    try {
+      await page.goto(url, {
+        waitUntil: "domcontentloaded",
+        timeout: 15000,
+      });
+    } catch (error) {
+      // Clean up request handler on navigation failure
+      page.off("request", requestHandler);
+      throw error;
+    }
 
     // Reduced wait time
     await new Promise((resolve) => setTimeout(resolve, 800));
@@ -561,9 +577,7 @@ export async function fetchInstagramMediaWithPuppeteer(
     });
 
     if (isLoginRequired) {
-      throw new PrivateMediaError(
-        "This content is private or requires login"
-      );
+      throw new PrivateMediaError("This content is private or requires login");
     }
 
     // Create scraper instance to use extraction methods
@@ -613,7 +627,31 @@ export async function fetchInstagramMediaWithPuppeteer(
     }
 
     throw new MediaNotFoundError("Could not find video URL");
+  } catch (error) {
+    // Handle specific Puppeteer errors
+    if (error instanceof Error) {
+      if (
+        error.message.includes("detached") ||
+        error.message.includes("closed")
+      ) {
+        throw new MediaNotFoundError("Browser connection lost during scraping");
+      }
+      if (
+        error.message.includes("timeout") ||
+        error.message.includes("Navigation timeout")
+      ) {
+        throw new MediaNotFoundError("Instagram page took too long to load");
+      }
+    }
+    throw error;
   } finally {
-    await browserPool.closePage(page);
+    try {
+      await browserPool.closePage(page);
+    } catch (error) {
+      console.warn(
+        `[Puppeteer] Error closing page (non-critical):`,
+        error instanceof Error ? error.message : error
+      );
+    }
   }
 }

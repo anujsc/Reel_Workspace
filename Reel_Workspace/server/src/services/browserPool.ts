@@ -2,10 +2,10 @@ import puppeteer, { Browser, Page } from "puppeteer";
 
 /**
  * Browser Pool Service
- * 
+ *
  * Maintains a single browser instance across requests to avoid
  * expensive browser launch overhead (~2-3s per launch).
- * 
+ *
  * Key benefits:
  * - Reuses browser instance (saves 2-3s per request)
  * - Creates new pages for each request (isolated contexts)
@@ -54,26 +54,23 @@ class BrowserPool {
       const launchOptions: any = {
         headless: "new",
         args: [
-          // Essential args
+          // Essential args for stability
           "--no-sandbox",
           "--disable-setuid-sandbox",
           "--disable-dev-shm-usage",
-          
-          // NEW: Performance optimizations
+
+          // Performance optimizations (safe ones)
           "--disable-gpu",
           "--disable-software-rasterizer",
           "--disable-extensions",
           "--disable-background-networking",
           "--disable-default-apps",
           "--disable-sync",
-          "--metrics-recording-only",
           "--no-first-run",
-          "--no-zygote",
-          "--single-process",
-          
+
           // Existing optimizations
           "--disable-accelerated-2d-canvas",
-          "--window-size=1280,720", // Reduced from 1920x1080
+          "--window-size=1280,720",
           "--disable-web-security",
           "--disable-features=IsolateOrigins,site-per-process",
           "--disable-blink-features=AutomationControlled",
@@ -104,11 +101,13 @@ class BrowserPool {
       return this.browser;
     } catch (error) {
       console.error(`[BrowserPool] Failed to launch browser:`, error);
-      
+
       if (this.launchAttempts >= this.MAX_LAUNCH_ATTEMPTS) {
         this.launchAttempts = 0;
         throw new Error(
-          `Failed to launch browser after ${this.MAX_LAUNCH_ATTEMPTS} attempts: ${
+          `Failed to launch browser after ${
+            this.MAX_LAUNCH_ATTEMPTS
+          } attempts: ${
             error instanceof Error ? error.message : "Unknown error"
           }`
         );
@@ -146,7 +145,7 @@ class BrowserPool {
   async getNewPage(): Promise<Page> {
     const browser = await this.getBrowser();
     const page = await browser.newPage();
-    
+
     console.log(`[BrowserPool] Created new page`);
     return page;
   }
