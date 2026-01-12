@@ -13,6 +13,7 @@ import { chatRoutes } from "./routes/chat.routes.js";
 import scraperRoutes from "./routes/scraper.routes.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { browserPool } from "./services/browserPool.js";
+import { KeepAliveService } from "./services/keepAlive.js";
 
 // Load environment variables
 dotenv.config();
@@ -120,6 +121,10 @@ const startServer = async () => {
       console.log(`✅ Server running on port ${PORT}`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
       console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
+
+      // Start keep-alive service in production
+      const keepAlive = KeepAliveService.getInstance();
+      keepAlive.start();
     });
   } catch (error) {
     console.error("❌ Failed to start server:", error);
@@ -130,6 +135,8 @@ const startServer = async () => {
 // Graceful shutdown
 process.on("SIGTERM", async () => {
   console.log("⚠️  SIGTERM received, shutting down gracefully...");
+  const keepAlive = KeepAliveService.getInstance();
+  keepAlive.stop();
   console.log("[Shutdown] Closing browser pool...");
   await browserPool.shutdown();
   console.log("[Shutdown] Complete");
@@ -138,6 +145,8 @@ process.on("SIGTERM", async () => {
 
 process.on("SIGINT", async () => {
   console.log("⚠️  SIGINT received, shutting down gracefully...");
+  const keepAlive = KeepAliveService.getInstance();
+  keepAlive.stop();
   console.log("[Shutdown] Closing browser pool...");
   await browserPool.shutdown();
   console.log("[Shutdown] Complete");

@@ -30,6 +30,7 @@
     "@types/form-data": "^2.2.1",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.0.3",
+    "@types/node-cron": "^3.0.11",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.1.2",
@@ -46,6 +47,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.0.2",
     "nanoid": "^5.1.6",
+    "node-cron": "^4.2.1",
     "puppeteer": "^24.34.0",
     "typescript": "^5.9.3"
   },
