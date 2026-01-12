@@ -17,6 +17,11 @@ import {
   SignificantInfoType,
 } from "./aiEntityExtraction.js";
 import { mergeMultimodalContent } from "./multimodalMerger.js";
+import {
+  analyzeCaptionWithAI,
+  captionToEntities,
+  CaptionAnalysisResult,
+} from "./captionAnalyzer.js";
 import cloudinary from "../config/cloudinary.js";
 
 /**
@@ -91,6 +96,7 @@ export interface ReelProcessingResultV2 {
     thumbnailMs: number;
     transcriptionMs: number;
     ocrMs: number;
+    captionMs: number;
     entityExtractionMs: number;
     summarizationMs: number;
     totalMs: number;
@@ -259,8 +265,36 @@ export async function processReelV2(
       );
     }
 
-    // Step 8: Merge multimodal content
-    console.log(`\n[Step 8/10] Merging multimodal content...`);
+    // Step 8: Analyze Instagram caption
+    console.log(`\n[Step 8/11] Analyzing Instagram caption...`);
+    let captionAnalysis: CaptionAnalysisResult | null = null;
+    let captionMs = 0;
+
+    if (mediaResult.description && mediaResult.description.trim().length > 0) {
+      try {
+        const { result: captionResult, durationMs: captionDuration } =
+          await measureTime(() =>
+            analyzeCaptionWithAI(mediaResult.description!)
+          );
+
+        captionAnalysis = captionResult;
+        captionMs = captionDuration;
+
+        console.log(
+          `✓ Caption analysis complete in ${captionMs}ms (${captionAnalysis.keyPoints.length} key points, ${captionAnalysis.hashtags.length} hashtags)`
+        );
+      } catch (error) {
+        console.error(
+          `✗ Caption analysis failed (non-critical):`,
+          error instanceof Error ? error.message : error
+        );
+      }
+    } else {
+      console.log(`⊘ No caption to analyze`);
+    }
+
+    // Step 9: Merge multimodal content
+    console.log(`\n[Step 9/11] Merging multimodal content...`);
     // Convert frameTimestamp back to timestamp for merger
     const visualTextsForMerger = visualTexts.map((item) => ({
       timestamp: item.frameTimestamp,
@@ -276,21 +310,34 @@ export async function processReelV2(
       }
     );
 
-    // Step 9: Extract entities from visual text
-    console.log(`\n[Step 9/10] Extracting entities...`);
+    // Step 10: Extract entities from all sources
+    console.log(`\n[Step 10/11] Extracting entities...`);
     let entityExtractionMs = 0;
     let allEntities: any[] = [];
 
     try {
       const { result: entityResults, durationMs: entityDuration } =
         await measureTime(async () => {
+          // Extract from visual text
           const visualEntities = await Promise.all(
             visualTexts
               .filter((v) => v.text.length > 0)
               .map((v) => extractEntities(v.text, "visual", v.frameTimestamp))
           );
 
-          return visualEntities.flatMap((r) => r.entities);
+          // Extract from caption if available
+          const captionEntities =
+            captionAnalysis && captionAnalysis.hasImportantInfo
+              ? captionToEntities(captionAnalysis)
+              : [];
+
+          // Combine all entities
+          const allExtracted = [
+            ...visualEntities.flatMap((r) => r.entities),
+            ...captionEntities,
+          ];
+
+          return allExtracted;
         });
 
       allEntities = deduplicateEntities(entityResults);
@@ -306,8 +353,8 @@ export async function processReelV2(
       );
     }
 
-    // Step 10: Generate AI summary with multimodal context
-    console.log(`\n[Step 10/10] Generating multimodal summary...`);
+    // Step 11: Generate AI summary with multimodal context
+    console.log(`\n[Step 11/11] Generating multimodal summary...`);
     const { result: summaryResult, durationMs: summarizationMs } =
       await measureTime(() => summarizeWithGroq(mergedContent.mergedText));
     console.log(`✓ Summarization complete in ${summarizationMs}ms`);
@@ -418,6 +465,11 @@ export async function processReelV2(
     console.log(`[Reel Processor V2] Processing complete!`);
     console.log(`Total time: ${(totalMs / 1000).toFixed(2)}s`);
     console.log(`Visual insights: ${allEntities.length} entities extracted`);
+    if (captionAnalysis && captionAnalysis.hasImportantInfo) {
+      console.log(
+        `Caption insights: ${captionAnalysis.keyPoints.length} key points, ${captionAnalysis.hashtags.length} hashtags, ${captionAnalysis.urls.length} URLs`
+      );
+    }
     console.log(`${"=".repeat(60)}\n`);
 
     return {
@@ -470,6 +522,7 @@ export async function processReelV2(
         thumbnailMs,
         transcriptionMs,
         ocrMs,
+        captionMs,
         entityExtractionMs,
         summarizationMs,
         totalMs,

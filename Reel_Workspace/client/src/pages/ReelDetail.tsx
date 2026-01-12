@@ -15,6 +15,7 @@ import { ReelSource } from "../components/ReelSource";
 import { ReelKnowledge } from "../components/ReelKnowledge";
 import { DeleteReelDialog } from "@/components/modals/DeleteReelDialog";
 import { EditReelTitleModal } from "@/components/modals/EditReelTitleModal";
+import { ChatWidget } from "../components/chat/ChatWidget";
 import { useState } from "react";
 
 export default function ReelDetail() {
@@ -167,6 +168,9 @@ export default function ReelDetail() {
         onOpenChange={setIsEditModalOpen}
         reel={reel}
       />
+
+      {/* AI Chat Widget */}
+      <ChatWidget reelId={reel.id} />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { reelRoutes } from "./routes/reel.routes.js";
 import { folderRoutes } from "./routes/folder.routes.js";
 import { searchRoutes } from "./routes/search.routes.js";
 import { shareRoutes } from "./routes/share.routes.js";
+import { chatRoutes } from "./routes/chat.routes.js";
 import scraperRoutes from "./routes/scraper.routes.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { browserPool } from "./services/browserPool.js";
@@ -84,6 +85,7 @@ app.get("/", (req: Request, res: Response) => {
       folders: "/api/folders",
       search: "/api/search",
       share: "/api/share",
+      chat: "/api/chat",
       scraper: "/api/scraper",
     },
   });
@@ -96,6 +98,7 @@ app.use("/api/reel", reelRoutes);
 app.use("/api/folders", folderRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/share", shareRoutes);
+app.use("/api/chat", chatRoutes);
 app.use("/api/scraper", scraperRoutes);
 
 // 404 Handler - Must be after all routes
