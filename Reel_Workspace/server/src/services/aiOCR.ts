@@ -221,6 +221,7 @@ export async function extractTextFromImages(
 
 /**
  * Extract text from frames with timestamp information
+ * OPTIMIZED: Batch processing with concurrency control
  */
 export async function extractTextFromFrames(
   frames: Array<{ timestamp: number; imageUrl: string }>
@@ -229,20 +230,61 @@ export async function extractTextFromFrames(
     return [];
   }
 
-  console.log(`[AI OCR] Processing ${frames.length} frames with timestamps`);
+  console.log(
+    `[AI OCR] Processing ${frames.length} frames with timestamps (optimized batch mode)`
+  );
 
   try {
-    // Process all frames in parallel
-    const results = await Promise.all(
-      frames.map(async (frame) => {
-        const ocrResult = await extractTextFromImage(frame.imageUrl);
-        return {
-          timestamp: frame.timestamp,
-          text: ocrResult.text,
-          confidence: ocrResult.confidence || 0.8,
-        };
-      })
-    );
+    // Process frames with controlled concurrency (3 at a time to avoid rate limits)
+    const BATCH_SIZE = 3;
+    const results: Array<{
+      timestamp: number;
+      text: string;
+      confidence: number;
+    }> = [];
+
+    for (let i = 0; i < frames.length; i += BATCH_SIZE) {
+      const batch = frames.slice(i, i + BATCH_SIZE);
+      console.log(
+        `[AI OCR] Processing batch ${
+          Math.floor(i / BATCH_SIZE) + 1
+        }/${Math.ceil(frames.length / BATCH_SIZE)}`
+      );
+
+      const batchResults = await Promise.allSettled(
+        batch.map(async (frame) => {
+          try {
+            const ocrResult = await extractTextFromImage(frame.imageUrl);
+            return {
+              timestamp: frame.timestamp,
+              text: ocrResult.text,
+              confidence: ocrResult.confidence || 0.8,
+            };
+          } catch (error) {
+            console.warn(
+              `[AI OCR] Failed to process frame at ${frame.timestamp}s, skipping...`
+            );
+            return {
+              timestamp: frame.timestamp,
+              text: "",
+              confidence: 0,
+            };
+          }
+        })
+      );
+
+      // Extract successful results
+      batchResults.forEach((result) => {
+        if (result.status === "fulfilled") {
+          results.push(result.value);
+        }
+      });
+
+      // Small delay between batches to avoid rate limiting
+      if (i + BATCH_SIZE < frames.length) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    }
 
     const successfulResults = results.filter((r) => r.text.length > 0);
     console.log(

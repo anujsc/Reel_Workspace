@@ -13,7 +13,12 @@ export interface FrameExtractionResult {
   }>;
 }
 
+// OPTIMIZATION SETTINGS
 const TEMP_FRAMES_DIR = path.join(process.cwd(), "temp", "frames");
+const FRAME_INTERVAL_SECONDS = 7; // Extract frames every 7 seconds (5-10s range)
+const MIN_FRAMES = 2; // Minimum frames to extract
+const MAX_FRAMES = 8; // Maximum frames to prevent excessive processing
+const FRAME_RESOLUTION = "960x540"; // Reduced from 1280x720 for faster processing
 
 /**
  * Ensure temp frames directory exists
@@ -32,35 +37,30 @@ async function ensureTempDirectory(): Promise<void> {
 
 /**
  * Determine optimal frame sampling based on video duration
+ * OPTIMIZED: Extract frames at 5-10 second intervals
  */
 export function determineFrameSampling(durationSeconds: number): number[] {
-  if (durationSeconds < 15) {
-    // Short reel: 3 frames (start, middle, end)
-    return [
-      1,
-      Math.floor(durationSeconds / 2),
-      Math.max(1, durationSeconds - 1),
-    ];
-  } else if (durationSeconds < 30) {
-    // Medium reel: 5 frames
-    return Array.from({ length: 5 }, (_, i) =>
-      Math.floor((durationSeconds / 6) * (i + 1))
-    );
-  } else if (durationSeconds < 60) {
-    // Long reel: 7 frames
-    return Array.from({ length: 7 }, (_, i) =>
-      Math.floor((durationSeconds / 8) * (i + 1))
-    );
-  } else {
-    // Very long: 10 frames max
-    return Array.from({ length: 10 }, (_, i) =>
-      Math.floor((durationSeconds / 11) * (i + 1))
-    );
+  // Calculate number of frames to maintain 5-10s interval
+  const idealFrameCount = Math.ceil(durationSeconds / FRAME_INTERVAL_SECONDS);
+  const frameCount = Math.max(
+    MIN_FRAMES,
+    Math.min(MAX_FRAMES, idealFrameCount)
+  );
+
+  // Generate evenly distributed timestamps
+  const timestamps: number[] = [];
+  const interval = durationSeconds / (frameCount + 1);
+
+  for (let i = 1; i <= frameCount; i++) {
+    timestamps.push(Math.floor(interval * i));
   }
+
+  return timestamps;
 }
 
 /**
  * Extract multiple frames from video at specified timestamps
+ * OPTIMIZED: Parallel extraction with batch processing
  */
 export async function extractFrames(
   videoPath: string,
@@ -69,14 +69,16 @@ export async function extractFrames(
   await ensureTempDirectory();
 
   console.log(
-    `[Frame Extractor] Extracting ${timestamps.length} frames from video`
+    `[Frame Extractor] Extracting ${timestamps.length} frames from video (parallel mode)`
   );
-  const frames = [];
 
-  for (const timestamp of timestamps) {
+  // Extract all frames in parallel using Promise.allSettled
+  const extractionPromises = timestamps.map(async (timestamp) => {
     const framePath = path.join(
       TEMP_FRAMES_DIR,
-      `frame_${Date.now()}_${timestamp}s.jpg`
+      `frame_${Date.now()}_${Math.random()
+        .toString(36)
+        .substring(7)}_${timestamp}s.jpg`
     );
 
     try {
@@ -86,22 +88,37 @@ export async function extractFrames(
             timestamps: [timestamp],
             filename: path.basename(framePath),
             folder: TEMP_FRAMES_DIR,
-            size: "1280x720",
+            size: FRAME_RESOLUTION,
           })
           .on("end", () => resolve())
           .on("error", (err) => reject(err));
       });
 
-      frames.push({ timestamp, filePath: framePath });
       console.log(`[Frame Extractor] ✓ Extracted frame at ${timestamp}s`);
+      return { timestamp, filePath: framePath };
     } catch (error) {
       console.warn(
         `[Frame Extractor] Failed to extract frame at ${timestamp}s:`,
         error instanceof Error ? error.message : error
       );
-      // Continue with other frames even if one fails
+      return null;
     }
-  }
+  });
+
+  // Wait for all extractions to complete
+  const results = await Promise.allSettled(extractionPromises);
+
+  // Filter successful extractions
+  const frames = results
+    .filter(
+      (
+        result
+      ): result is PromiseFulfilledResult<{
+        timestamp: number;
+        filePath: string;
+      } | null> => result.status === "fulfilled" && result.value !== null
+    )
+    .map((result) => result.value!);
 
   console.log(
     `[Frame Extractor] Successfully extracted ${frames.length}/${timestamps.length} frames`

@@ -216,9 +216,9 @@ export async function processReelV2(
       `✓ Transcription complete in ${transcriptionMs}ms (${transcriptResult.transcript.length} characters)`
     );
 
-    // Step 7: OCR all frames
+    // Step 7: OCR all frames (OPTIMIZED: Parallel upload and batch OCR)
     console.log(
-      `\n[Step 7/10] Extracting text from ${frameResult.frames.length} frames...`
+      `\n[Step 7/10] Extracting text from ${frameResult.frames.length} frames (optimized)...`
     );
     let visualTexts: Array<{
       frameTimestamp: number;
@@ -228,31 +228,53 @@ export async function processReelV2(
     let ocrMs = 0;
 
     try {
-      // Upload frames to Cloudinary for OCR
+      const ocrStartTime = Date.now();
+
+      // Upload frames to Cloudinary in parallel (faster than sequential)
+      console.log(
+        `[OCR] Uploading ${frameResult.frames.length} frames to Cloudinary...`
+      );
       const frameUploads = await Promise.all(
         frameResult.frames.map(async (frame) => {
-          const upload = await uploadFrameToCloudinary(frame.filePath);
-          cloudinaryPublicIds.push(upload.publicId);
-          return {
-            timestamp: frame.timestamp,
-            imageUrl: upload.url,
-          };
+          try {
+            const upload = await uploadFrameToCloudinary(frame.filePath);
+            cloudinaryPublicIds.push(upload.publicId);
+            return {
+              timestamp: frame.timestamp,
+              imageUrl: upload.url,
+            };
+          } catch (error) {
+            console.warn(
+              `[OCR] Failed to upload frame at ${frame.timestamp}s, skipping...`
+            );
+            return null;
+          }
         })
       );
 
-      const { result: ocrResult, durationMs: ocrDuration } = await measureTime(
-        () => extractTextFromFrames(frameUploads)
+      // Filter out failed uploads
+      const validFrameUploads = frameUploads.filter(
+        (f): f is { timestamp: number; imageUrl: string } => f !== null
+      );
+      console.log(
+        `[OCR] Successfully uploaded ${validFrameUploads.length}/${frameResult.frames.length} frames`
       );
 
-      // Map timestamp to frameTimestamp and filter out empty text
-      visualTexts = ocrResult
-        .map((item) => ({
-          frameTimestamp: item.timestamp,
-          text: item.text,
-          confidence: item.confidence,
-        }))
-        .filter((item) => item.text && item.text.trim().length > 0);
-      ocrMs = ocrDuration;
+      if (validFrameUploads.length > 0) {
+        // Process OCR with batch control
+        const ocrResult = await extractTextFromFrames(validFrameUploads);
+
+        // Map timestamp to frameTimestamp and filter out empty text
+        visualTexts = ocrResult
+          .map((item) => ({
+            frameTimestamp: item.timestamp,
+            text: item.text,
+            confidence: item.confidence,
+          }))
+          .filter((item) => item.text && item.text.trim().length > 0);
+      }
+
+      ocrMs = Date.now() - ocrStartTime;
 
       const successfulOcr = visualTexts.length;
       console.log(
