@@ -17,14 +17,23 @@ class BrowserPool {
   private launching: boolean = false;
   private launchAttempts: number = 0;
   private readonly MAX_LAUNCH_ATTEMPTS = 3;
+  private idleTimeout: NodeJS.Timeout | null = null;
+  private readonly IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
   /**
    * Get or create browser instance
    */
   async getBrowser(): Promise<Browser> {
+    // Clear idle timeout when browser is used
+    if (this.idleTimeout) {
+      clearTimeout(this.idleTimeout);
+      this.idleTimeout = null;
+    }
+
     // Return existing connected browser
     if (this.browser && this.browser.isConnected()) {
       console.log(`[BrowserPool] Reusing existing browser instance`);
+      this.scheduleIdleShutdown();
       return this.browser;
     }
 
@@ -40,6 +49,18 @@ class BrowserPool {
   }
 
   /**
+   * Schedule browser shutdown after idle period
+   */
+  private scheduleIdleShutdown(): void {
+    this.idleTimeout = setTimeout(async () => {
+      console.log(
+        `[BrowserPool] Browser idle for ${this.IDLE_TIMEOUT_MS / 1000}s, shutting down to save memory...`,
+      );
+      await this.shutdown();
+    }, this.IDLE_TIMEOUT_MS);
+  }
+
+  /**
    * Launch a new browser instance with optimized settings
    */
   private async launchBrowser(): Promise<Browser> {
@@ -48,7 +69,7 @@ class BrowserPool {
 
     try {
       console.log(
-        `[BrowserPool] Launching browser (attempt ${this.launchAttempts})...`
+        `[BrowserPool] Launching browser (attempt ${this.launchAttempts})...`,
       );
 
       const launchOptions: any = {
@@ -67,6 +88,10 @@ class BrowserPool {
           "--disable-default-apps",
           "--disable-sync",
           "--no-first-run",
+
+          // Memory optimizations for Render free tier
+          "--single-process",
+          "--no-zygote",
 
           // Existing optimizations
           "--disable-accelerated-2d-canvas",
@@ -94,10 +119,15 @@ class BrowserPool {
         console.warn(`[BrowserPool] Browser disconnected unexpectedly`);
         this.browser = null;
         this.launchAttempts = 0;
+        if (this.idleTimeout) {
+          clearTimeout(this.idleTimeout);
+          this.idleTimeout = null;
+        }
       });
 
       console.log(`[BrowserPool] ✓ Browser launched successfully`);
       this.launchAttempts = 0;
+      this.scheduleIdleShutdown();
       return this.browser;
     } catch (error) {
       console.error(`[BrowserPool] Failed to launch browser:`, error);
@@ -109,7 +139,7 @@ class BrowserPool {
             this.MAX_LAUNCH_ATTEMPTS
           } attempts: ${
             error instanceof Error ? error.message : "Unknown error"
-          }`
+          }`,
         );
       }
 
@@ -160,7 +190,7 @@ class BrowserPool {
     } catch (err) {
       console.error(
         `[BrowserPool] Error closing page:`,
-        err instanceof Error ? err.message : err
+        err instanceof Error ? err.message : err,
       );
     }
   }
@@ -169,6 +199,11 @@ class BrowserPool {
    * Shutdown the browser pool (for graceful shutdown)
    */
   async shutdown(): Promise<void> {
+    if (this.idleTimeout) {
+      clearTimeout(this.idleTimeout);
+      this.idleTimeout = null;
+    }
+
     if (this.browser) {
       console.log(`[BrowserPool] Shutting down browser...`);
       try {

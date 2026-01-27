@@ -130,7 +130,9 @@ export const getSharedFolder = async (
   const folderShare = await FolderShare.findOne({
     shareToken,
     isActive: true,
-  }).populate("folderId");
+  })
+  .populate("folderId")
+  .lean();
 
   if (!folderShare) {
     throw new NotFoundError("Shared folder not found or link is inactive");

@@ -12,7 +12,7 @@ function getGroqClient(): Groq {
   if (!groq) {
     if (!process.env.GROQ_API_KEY) {
       throw new Error(
-        "GROQ_API_KEY environment variable is not set. Please add it to your .env file."
+        "GROQ_API_KEY environment variable is not set. Please add it to your .env file.",
       );
     }
     groq = new Groq({
@@ -37,7 +37,7 @@ interface ChatMessage {
  */
 export const ephemeralChat = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   const { reelId, messages } = req.body;
   const userId = req.user!._id;
@@ -55,12 +55,16 @@ export const ephemeralChat = async (
       throw new ValidationError("Messages array is required");
     }
 
-    // Fetch reel with full context
+    // Fetch reel with full context (optimized with select and lean)
     const reel = await Reel.findOne({
       _id: reelId,
       userId,
       isDeleted: false,
-    });
+    })
+      .select(
+        "title summary transcript keyPoints examples detailedExplanation ocrText tags",
+      )
+      .lean();
 
     if (!reel) {
       throw new NotFoundError("Reel not found");
@@ -136,7 +140,7 @@ function buildSystemPrompt(reel: any): string {
     const half = Math.floor(MAX_TRANSCRIPT_LENGTH / 2);
     transcript = `${transcript.slice(
       0,
-      half
+      half,
     )}\n\n[... content truncated ...]\n\n${transcript.slice(-half)}`;
   }
 

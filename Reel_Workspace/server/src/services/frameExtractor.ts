@@ -17,7 +17,7 @@ export interface FrameExtractionResult {
 const TEMP_FRAMES_DIR = path.join(process.cwd(), "temp", "frames");
 const FRAME_INTERVAL_SECONDS = 7; // Extract frames every 7 seconds (5-10s range)
 const MIN_FRAMES = 2; // Minimum frames to extract
-const MAX_FRAMES = 8; // Maximum frames to prevent excessive processing
+const MAX_FRAMES = process.env.NODE_ENV === "production" ? 5 : 8; // Reduced for Render free tier
 const FRAME_RESOLUTION = "960x540"; // Reduced from 1280x720 for faster processing
 
 /**
@@ -30,7 +30,7 @@ async function ensureTempDirectory(): Promise<void> {
     throw new FileSystemError(
       `Failed to create temp frames directory: ${
         error instanceof Error ? error.message : error
-      }`
+      }`,
     );
   }
 }
@@ -44,7 +44,7 @@ export function determineFrameSampling(durationSeconds: number): number[] {
   const idealFrameCount = Math.ceil(durationSeconds / FRAME_INTERVAL_SECONDS);
   const frameCount = Math.max(
     MIN_FRAMES,
-    Math.min(MAX_FRAMES, idealFrameCount)
+    Math.min(MAX_FRAMES, idealFrameCount),
   );
 
   // Generate evenly distributed timestamps
@@ -64,12 +64,12 @@ export function determineFrameSampling(durationSeconds: number): number[] {
  */
 export async function extractFrames(
   videoPath: string,
-  timestamps: number[]
+  timestamps: number[],
 ): Promise<FrameExtractionResult> {
   await ensureTempDirectory();
 
   console.log(
-    `[Frame Extractor] Extracting ${timestamps.length} frames from video (parallel mode)`
+    `[Frame Extractor] Extracting ${timestamps.length} frames from video (parallel mode)`,
   );
 
   // Extract all frames in parallel using Promise.allSettled
@@ -78,7 +78,7 @@ export async function extractFrames(
       TEMP_FRAMES_DIR,
       `frame_${Date.now()}_${Math.random()
         .toString(36)
-        .substring(7)}_${timestamp}s.jpg`
+        .substring(7)}_${timestamp}s.jpg`,
     );
 
     try {
@@ -99,7 +99,7 @@ export async function extractFrames(
     } catch (error) {
       console.warn(
         `[Frame Extractor] Failed to extract frame at ${timestamp}s:`,
-        error instanceof Error ? error.message : error
+        error instanceof Error ? error.message : error,
       );
       return null;
     }
@@ -112,16 +112,16 @@ export async function extractFrames(
   const frames = results
     .filter(
       (
-        result
+        result,
       ): result is PromiseFulfilledResult<{
         timestamp: number;
         filePath: string;
-      } | null> => result.status === "fulfilled" && result.value !== null
+      } | null> => result.status === "fulfilled" && result.value !== null,
     )
     .map((result) => result.value!);
 
   console.log(
-    `[Frame Extractor] Successfully extracted ${frames.length}/${timestamps.length} frames`
+    `[Frame Extractor] Successfully extracted ${frames.length}/${timestamps.length} frames`,
   );
 
   return { frames };
@@ -131,7 +131,7 @@ export async function extractFrames(
  * Delete frame files
  */
 export async function deleteFrames(
-  frames: Array<{ filePath: string }>
+  frames: Array<{ filePath: string }>,
 ): Promise<void> {
   for (const frame of frames) {
     try {
@@ -141,7 +141,7 @@ export async function deleteFrames(
       if (error.code !== "ENOENT") {
         console.warn(
           `[Frame Extractor] Failed to delete frame ${frame.filePath}:`,
-          error
+          error,
         );
       }
     }

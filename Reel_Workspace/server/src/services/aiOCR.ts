@@ -42,7 +42,7 @@ async function imageUrlToBase64(imageUrl: string): Promise<string> {
     throw new OcrError(
       `Failed to download image: ${
         error instanceof Error ? error.message : error
-      }`
+      }`,
     );
   }
 }
@@ -51,7 +51,7 @@ async function imageUrlToBase64(imageUrl: string): Promise<string> {
  * Extract text from image using Groq Vision
  */
 export async function extractTextFromImage(
-  imageUrl: string
+  imageUrl: string,
 ): Promise<OCRResult> {
   if (!imageUrl || imageUrl.trim().length === 0) {
     console.warn(`[AI OCR] No image URL provided, skipping OCR`);
@@ -155,7 +155,7 @@ Extract the text:`;
 
     if (error.message?.includes("model")) {
       throw new OcrError(
-        `Groq Vision model not available. Try: llama-3.2-11b-vision-preview or llama-3.2-90b-vision-preview`
+        `Groq Vision model not available. Try: llama-3.2-11b-vision-preview or llama-3.2-90b-vision-preview`,
       );
     }
 
@@ -175,7 +175,7 @@ Extract the text:`;
  * Extract text from multiple images with timestamps
  */
 export async function extractTextFromImages(
-  imageUrls: string[]
+  imageUrls: string[],
 ): Promise<OCRResult> {
   if (imageUrls.length === 0) {
     return {
@@ -189,7 +189,7 @@ export async function extractTextFromImages(
   try {
     // Process all images in parallel
     const results = await Promise.all(
-      imageUrls.map((imageUrl) => extractTextFromImage(imageUrl))
+      imageUrls.map((imageUrl) => extractTextFromImage(imageUrl)),
     );
 
     // Combine all text
@@ -214,7 +214,7 @@ export async function extractTextFromImages(
     throw new OcrError(
       `Failed to process multiple images: ${
         error instanceof Error ? error.message : error
-      }`
+      }`,
     );
   }
 }
@@ -224,19 +224,19 @@ export async function extractTextFromImages(
  * OPTIMIZED: Batch processing with concurrency control
  */
 export async function extractTextFromFrames(
-  frames: Array<{ timestamp: number; imageUrl: string }>
+  frames: Array<{ timestamp: number; imageUrl: string }>,
 ): Promise<Array<{ timestamp: number; text: string; confidence: number }>> {
   if (frames.length === 0) {
     return [];
   }
 
   console.log(
-    `[AI OCR] Processing ${frames.length} frames with timestamps (optimized batch mode)`
+    `[AI OCR] Processing ${frames.length} frames with timestamps (optimized batch mode)`,
   );
 
   try {
-    // Process frames with controlled concurrency (3 at a time to avoid rate limits)
-    const BATCH_SIZE = 3;
+    // Process frames with controlled concurrency (2 at a time in production to avoid rate limits and save memory)
+    const BATCH_SIZE = process.env.NODE_ENV === "production" ? 2 : 3;
     const results: Array<{
       timestamp: number;
       text: string;
@@ -248,7 +248,7 @@ export async function extractTextFromFrames(
       console.log(
         `[AI OCR] Processing batch ${
           Math.floor(i / BATCH_SIZE) + 1
-        }/${Math.ceil(frames.length / BATCH_SIZE)}`
+        }/${Math.ceil(frames.length / BATCH_SIZE)}`,
       );
 
       const batchResults = await Promise.allSettled(
@@ -262,7 +262,7 @@ export async function extractTextFromFrames(
             };
           } catch (error) {
             console.warn(
-              `[AI OCR] Failed to process frame at ${frame.timestamp}s, skipping...`
+              `[AI OCR] Failed to process frame at ${frame.timestamp}s, skipping...`,
             );
             return {
               timestamp: frame.timestamp,
@@ -270,7 +270,7 @@ export async function extractTextFromFrames(
               confidence: 0,
             };
           }
-        })
+        }),
       );
 
       // Extract successful results
@@ -288,7 +288,7 @@ export async function extractTextFromFrames(
 
     const successfulResults = results.filter((r) => r.text.length > 0);
     console.log(
-      `[AI OCR] Successfully extracted text from ${successfulResults.length}/${frames.length} frames`
+      `[AI OCR] Successfully extracted text from ${successfulResults.length}/${frames.length} frames`,
     );
 
     return results;
@@ -300,7 +300,7 @@ export async function extractTextFromFrames(
     throw new OcrError(
       `Failed to process frames: ${
         error instanceof Error ? error.message : error
-      }`
+      }`,
     );
   }
 }

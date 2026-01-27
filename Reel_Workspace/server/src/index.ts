@@ -48,7 +48,7 @@ app.use(
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-  })
+  }),
 );
 
 // Body Parser Middleware
@@ -155,3 +155,33 @@ process.on("SIGINT", async () => {
 
 // Start the server
 startServer();
+
+// Memory monitoring for Render free tier
+if (process.env.NODE_ENV === "production") {
+  console.log("🔍 Memory monitoring enabled for production");
+
+  setInterval(() => {
+    const used = process.memoryUsage();
+    const mbUsed = Math.round(used.heapUsed / 1024 / 1024);
+    const mbTotal = Math.round(used.heapTotal / 1024 / 1024);
+    const mbRss = Math.round(used.rss / 1024 / 1024);
+
+    console.log(
+      `[Memory] Heap: ${mbUsed}/${mbTotal}MB | RSS: ${mbRss}MB | External: ${Math.round(used.external / 1024 / 1024)}MB`,
+    );
+
+    // Warning if approaching limit (512MB total on Render free tier)
+    if (mbRss > 400) {
+      console.warn(
+        `⚠️  Memory usage high: ${mbRss}MB / 512MB - Consider restarting or optimizing`,
+      );
+    }
+
+    // Critical warning
+    if (mbRss > 450) {
+      console.error(
+        `🚨 CRITICAL: Memory usage very high: ${mbRss}MB / 512MB - Crash imminent!`,
+      );
+    }
+  }, 60000); // Log every minute
+}

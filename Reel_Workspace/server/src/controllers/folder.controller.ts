@@ -109,7 +109,7 @@ export const getFolderById = async (
   const folder = await Folder.findOne({
     _id: id,
     userId,
-  });
+  }).lean();
 
   if (!folder) {
     throw new NotFoundError("Folder not found");

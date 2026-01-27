@@ -16,7 +16,10 @@ export interface DownloadedVideoResult {
 }
 
 const TEMP_VIDEO_DIR = path.join(process.cwd(), "temp", "videos");
-const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB
+const MAX_FILE_SIZE =
+  process.env.NODE_ENV === "production"
+    ? 50 * 1024 * 1024 // 50MB in production (Render free tier)
+    : 200 * 1024 * 1024; // 200MB in development
 const DOWNLOAD_TIMEOUT = 120000; // 2 minutes
 
 // OPTIMIZATION: HTTP/HTTPS agent pooling for connection reuse
@@ -44,7 +47,7 @@ async function ensureTempDirectory(): Promise<void> {
     throw new FileSystemError(
       `Failed to create temp directory: ${
         error instanceof Error ? error.message : error
-      }`
+      }`,
     );
   }
 }
@@ -62,7 +65,7 @@ function generateUniqueFilename(): string {
  * Download video from URL to temp directory
  */
 export async function downloadVideo(
-  videoUrl: string
+  videoUrl: string,
 ): Promise<DownloadedVideoResult> {
   await ensureTempDirectory();
 
@@ -89,13 +92,13 @@ export async function downloadVideo(
     // Check content length
     const contentLength = parseInt(
       response.headers["content-length"] || "0",
-      10
+      10,
     );
     if (contentLength > MAX_FILE_SIZE) {
       throw new VideoDownloadError(
         `Video file too large: ${(contentLength / 1024 / 1024).toFixed(
-          2
-        )}MB (max ${MAX_FILE_SIZE / 1024 / 1024}MB)`
+          2,
+        )}MB (max ${MAX_FILE_SIZE / 1024 / 1024}MB)`,
       );
     }
 
@@ -116,7 +119,7 @@ export async function downloadVideo(
                 downloadedBytes /
                 1024 /
                 1024
-              ).toFixed(2)}MB)`
+              ).toFixed(2)}MB)`,
             );
             lastLoggedPercent = percent;
           }
@@ -130,8 +133,8 @@ export async function downloadVideo(
             new VideoDownloadError(
               `Download exceeded maximum file size of ${
                 MAX_FILE_SIZE / 1024 / 1024
-              }MB`
-            )
+              }MB`,
+            ),
           );
         }
       });
@@ -145,7 +148,7 @@ export async function downloadVideo(
             downloadedBytes /
             1024 /
             1024
-          ).toFixed(2)}MB in ${downloadTime}ms`
+          ).toFixed(2)}MB in ${downloadTime}ms`,
         );
         resolve({
           filePath,
@@ -156,13 +159,13 @@ export async function downloadVideo(
 
       writer.on("error", (error) => {
         reject(
-          new FileSystemError(`Failed to write video file: ${error.message}`)
+          new FileSystemError(`Failed to write video file: ${error.message}`),
         );
       });
 
       response.data.on("error", (error: Error) => {
         reject(
-          new VideoDownloadError(`Failed to download video: ${error.message}`)
+          new VideoDownloadError(`Failed to download video: ${error.message}`),
         );
       });
     });
@@ -178,11 +181,11 @@ export async function downloadVideo(
       const axiosError = error as AxiosError;
       if (axiosError.code === "ECONNABORTED") {
         throw new VideoDownloadError(
-          "Download timeout - video took too long to download"
+          "Download timeout - video took too long to download",
         );
       }
       throw new VideoDownloadError(
-        `Network error during download: ${axiosError.message}`
+        `Network error during download: ${axiosError.message}`,
       );
     }
 
@@ -196,7 +199,7 @@ export async function downloadVideo(
     throw new VideoDownloadError(
       `Unexpected error during download: ${
         error instanceof Error ? error.message : error
-      }`
+      }`,
     );
   }
 }
@@ -216,7 +219,7 @@ export async function deleteFile(filePath: string): Promise<void> {
     }
     console.error(
       `[Video Downloader] Failed to delete file ${filePath}:`,
-      error
+      error,
     );
   }
 }

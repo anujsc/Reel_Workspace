@@ -19,7 +19,13 @@ export const connectDB = async (): Promise<void> => {
 
   while (retries < MAX_RETRIES) {
     try {
-      const conn = await mongoose.connect(mongoURI);
+      const conn = await mongoose.connect(mongoURI, {
+        maxPoolSize: 5, // Reduced from default 10 for Render free tier
+        minPoolSize: 1, // Keep minimum connections
+        socketTimeoutMS: 45000,
+        serverSelectionTimeoutMS: 10000,
+        family: 4, // Use IPv4, skip IPv6 lookup
+      });
 
       console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
       console.log(`📊 Database Name: ${conn.connection.name}`);
@@ -41,7 +47,7 @@ export const connectDB = async (): Promise<void> => {
     } catch (error) {
       retries++;
       console.error(
-        `❌ MongoDB connection attempt ${retries}/${MAX_RETRIES} failed:`
+        `❌ MongoDB connection attempt ${retries}/${MAX_RETRIES} failed:`,
       );
 
       if (error instanceof Error) {

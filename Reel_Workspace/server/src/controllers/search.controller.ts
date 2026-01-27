@@ -52,7 +52,7 @@ export interface SearchResponse {
  */
 export const searchReels = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   const userId = req.user!._id;
   const query = (req.query.q as string) || "";
@@ -167,7 +167,7 @@ export interface FilterResponse {
  */
 export const filterReels = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   const userId = req.user!._id;
   const folderId = req.query.folderId as string;
@@ -235,7 +235,7 @@ export const filterReels = async (
     .skip(skip)
     .populate("folderId", "name color")
     .select(
-      "title summary thumbnailUrl tags folderId createdAt durationSeconds"
+      "title summary thumbnailUrl tags folderId createdAt durationSeconds",
     )
     .lean();
 
@@ -301,54 +301,63 @@ export const filterReels = async (
  */
 export const getFilterStats = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   const userId = req.user!._id;
 
   // Get all unique tags
-  const tagsAggregation = await Reel.aggregate([
-    { $match: { userId, isDeleted: false } },
-    { $unwind: "$tags" },
-    { $group: { _id: "$tags", count: { $sum: 1 } } },
-    { $sort: { count: -1 } },
-    { $limit: 50 },
-  ]);
+  const tagsAggregation = await Reel.aggregate(
+    [
+      { $match: { userId, isDeleted: false } },
+      { $unwind: "$tags" },
+      { $group: { _id: "$tags", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 50 },
+    ],
+    { allowDiskUse: true },
+  ); // Use disk instead of RAM for large datasets
 
   // Get date range
-  const dateRange = await Reel.aggregate([
-    { $match: { userId, isDeleted: false } },
-    {
-      $group: {
-        _id: null,
-        oldest: { $min: "$createdAt" },
-        newest: { $max: "$createdAt" },
+  const dateRange = await Reel.aggregate(
+    [
+      { $match: { userId, isDeleted: false } },
+      {
+        $group: {
+          _id: null,
+          oldest: { $min: "$createdAt" },
+          newest: { $max: "$createdAt" },
+        },
       },
-    },
-  ]);
+    ],
+    { allowDiskUse: true },
+  );
 
   // Get folder counts
-  const folderCounts = await Reel.aggregate([
-    { $match: { userId, isDeleted: false } },
-    { $group: { _id: "$folderId", count: { $sum: 1 } } },
-    {
-      $lookup: {
-        from: "folders",
-        localField: "_id",
-        foreignField: "_id",
-        as: "folder",
+  const folderCounts = await Reel.aggregate(
+    [
+      { $match: { userId, isDeleted: false } },
+      { $group: { _id: "$folderId", count: { $sum: 1 } } },
+      {
+        $lookup: {
+          from: "folders",
+          localField: "_id",
+          foreignField: "_id",
+          as: "folder",
+        },
       },
-    },
-    { $unwind: "$folder" },
-    {
-      $project: {
-        folderId: "$_id",
-        folderName: "$folder.name",
-        folderColor: "$folder.color",
-        count: 1,
+      { $unwind: "$folder" },
+      {
+        $project: {
+          folderId: "$_id",
+          folderName: "$folder.name",
+          folderColor: "$folder.color",
+          count: 1,
+        },
       },
-    },
-    { $sort: { count: -1 } },
-  ]);
+      { $sort: { count: -1 } },
+    ],
+    { allowDiskUse: true },
+  );
 
   const stats = {
     tags: tagsAggregation.map((t) => ({

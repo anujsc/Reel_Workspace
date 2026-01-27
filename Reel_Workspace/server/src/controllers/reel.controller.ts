@@ -204,12 +204,14 @@ export const getAllReels = async (
   }
 
   // Get reels with pagination
-  const reels = await Reel.find(query)
-    .sort({ createdAt: -1 })
-    .limit(limit)
-    .skip(skip)
-    .populate("folderId", "name color")
-    .lean();
+ const reels = await Reel.find(query)
+  .sort({ createdAt: -1 })
+  .limit(limit)
+  .skip(skip)
+  .populate("folderId", "name color")
+  .select("title summary thumbnailUrl tags folderId createdAt durationSeconds") // ← ADD THIS
+  .lean();
+
 
   // Get total count for pagination
   const total = await Reel.countDocuments(query);
@@ -252,11 +254,13 @@ export const getReelById = async (
   }
 
   // Find reel
-  const reel = await Reel.findOne({
-    _id: id,
-    userId,
-    isDeleted: false,
-  }).populate("folderId", "name color");
+const reel = await Reel.findOne({
+  _id: id,
+  userId,
+  isDeleted: false,
+})
+  .populate("folderId", "name color")
+  .lean(); 
 
   if (!reel) {
     throw new NotFoundError("Reel not found");
