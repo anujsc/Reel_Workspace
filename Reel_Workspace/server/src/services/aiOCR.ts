@@ -235,8 +235,8 @@ export async function extractTextFromFrames(
   );
 
   try {
-    // Process frames with controlled concurrency (2 at a time in production to avoid rate limits and save memory)
-    const BATCH_SIZE = process.env.NODE_ENV === "production" ? 2 : 3;
+    // Process frames with controlled concurrency (1 at a time for speed)
+    const BATCH_SIZE = 1; // Process one at a time for fastest response
     const results: Array<{
       timestamp: number;
       text: string;
@@ -282,7 +282,7 @@ export async function extractTextFromFrames(
 
       // Small delay between batches to avoid rate limiting
       if (i + BATCH_SIZE < frames.length) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 100)); // Reduced from 500ms to 100ms
       }
     }
 

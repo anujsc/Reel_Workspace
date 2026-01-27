@@ -15,10 +15,10 @@ export interface FrameExtractionResult {
 
 // OPTIMIZATION SETTINGS
 const TEMP_FRAMES_DIR = path.join(process.cwd(), "temp", "frames");
-const FRAME_INTERVAL_SECONDS = 7; // Extract frames every 7 seconds (5-10s range)
+const FRAME_INTERVAL_SECONDS = 10; // Extract frames every 10 seconds (faster)
 const MIN_FRAMES = 2; // Minimum frames to extract
-const MAX_FRAMES = process.env.NODE_ENV === "production" ? 5 : 8; // Reduced for Render free tier
-const FRAME_RESOLUTION = "960x540"; // Reduced from 1280x720 for faster processing
+const MAX_FRAMES = 3; // Reduced to 3 for speed (was 5)
+const FRAME_RESOLUTION = "640x360"; // Further reduced for speed (was 960x540)
 
 /**
  * Ensure temp frames directory exists
@@ -60,7 +60,7 @@ export function determineFrameSampling(durationSeconds: number): number[] {
 
 /**
  * Extract multiple frames from video at specified timestamps
- * OPTIMIZED: Parallel extraction with batch processing
+ * OPTIMIZED: Single ffmpeg command for all frames (much faster!)
  */
 export async function extractFrames(
   videoPath: string,
@@ -69,24 +69,64 @@ export async function extractFrames(
   await ensureTempDirectory();
 
   console.log(
-    `[Frame Extractor] Extracting ${timestamps.length} frames from video (parallel mode)`,
+    `[Frame Extractor] Extracting ${timestamps.length} frames from video (optimized single-pass mode)`,
   );
 
-  // Extract all frames in parallel using Promise.allSettled
-  const extractionPromises = timestamps.map(async (timestamp) => {
-    const framePath = path.join(
+  const frames: Array<{ timestamp: number; filePath: string }> = [];
+  const baseFilename = `frame_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+
+  try {
+    // Extract all frames in a SINGLE ffmpeg command (much faster!)
+    await new Promise<void>((resolve, reject) => {
+      ffmpeg(videoPath)
+        .screenshots({
+          timestamps: timestamps,
+          filename: `${baseFilename}_%i.jpg`,
+          folder: TEMP_FRAMES_DIR,
+          size: FRAME_RESOLUTION,
+        })
+        .on("end", () => resolve())
+        .on("error", (err) => reject(err));
+    });
+
+    // Map extracted files to timestamps
+    for (let i = 0; i < timestamps.length; i++) {
+      const framePath = path.join(
+        TEMP_FRAMES_DIR,
+        `${baseFilename}_${i + 1}.jpg`,
+      );
+      frames.push({
+        timestamp: timestamps[i],
+        filePath: framePath,
+      });
+      console.log(`[Frame Extractor] ✓ Extracted frame at ${timestamps[i]}s`);
+    }
+
+    console.log(
+      `[Frame Extractor] Successfully extracted ${frames.length}/${timestamps.length} frames in single pass`,
+    );
+
+    return { frames };
+  } catch (error) {
+    console.error(
+      `[Frame Extractor] Failed to extract frames:`,
+      error instanceof Error ? error.message : error,
+    );
+
+    // Fallback: try to extract at least one frame
+    console.log(`[Frame Extractor] Attempting fallback extraction...`);
+    const fallbackTimestamp = timestamps[Math.floor(timestamps.length / 2)];
+    const fallbackPath = path.join(
       TEMP_FRAMES_DIR,
-      `frame_${Date.now()}_${Math.random()
-        .toString(36)
-        .substring(7)}_${timestamp}s.jpg`,
+      `${baseFilename}_fallback.jpg`,
     );
 
     try {
       await new Promise<void>((resolve, reject) => {
         ffmpeg(videoPath)
           .screenshots({
-            timestamps: [timestamp],
-            filename: path.basename(framePath),
+            timestamps: [fallbackTimestamp],
+            filename: path.basename(fallbackPath),
             folder: TEMP_FRAMES_DIR,
             size: FRAME_RESOLUTION,
           })
@@ -94,37 +134,17 @@ export async function extractFrames(
           .on("error", (err) => reject(err));
       });
 
-      console.log(`[Frame Extractor] ✓ Extracted frame at ${timestamp}s`);
-      return { timestamp, filePath: framePath };
-    } catch (error) {
-      console.warn(
-        `[Frame Extractor] Failed to extract frame at ${timestamp}s:`,
-        error instanceof Error ? error.message : error,
+      return {
+        frames: [{ timestamp: fallbackTimestamp, filePath: fallbackPath }],
+      };
+    } catch (fallbackError) {
+      throw new FileSystemError(
+        `Failed to extract frames: ${
+          error instanceof Error ? error.message : error
+        }`,
       );
-      return null;
     }
-  });
-
-  // Wait for all extractions to complete
-  const results = await Promise.allSettled(extractionPromises);
-
-  // Filter successful extractions
-  const frames = results
-    .filter(
-      (
-        result,
-      ): result is PromiseFulfilledResult<{
-        timestamp: number;
-        filePath: string;
-      } | null> => result.status === "fulfilled" && result.value !== null,
-    )
-    .map((result) => result.value!);
-
-  console.log(
-    `[Frame Extractor] Successfully extracted ${frames.length}/${timestamps.length} frames`,
-  );
-
-  return { frames };
+  }
 }
 
 /**
