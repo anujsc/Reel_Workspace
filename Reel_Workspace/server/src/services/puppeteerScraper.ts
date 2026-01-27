@@ -71,24 +71,24 @@ export class InstagramPuppeteerScraper {
     // 4. Let Puppeteer auto-detect from cache
     if (this.config.executablePath) {
       console.log(
-        `[Puppeteer] Using custom Chromium at: ${this.config.executablePath}`
+        `[Puppeteer] Using custom Chromium at: ${this.config.executablePath}`,
       );
       launchOptions.executablePath = this.config.executablePath;
     } else if (process.env.PUPPETEER_EXECUTABLE_PATH) {
       console.log(
-        `[Puppeteer] Using Chromium from PUPPETEER_EXECUTABLE_PATH: ${process.env.PUPPETEER_EXECUTABLE_PATH}`
+        `[Puppeteer] Using Chromium from PUPPETEER_EXECUTABLE_PATH: ${process.env.PUPPETEER_EXECUTABLE_PATH}`,
       );
       launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
     } else if (process.env.CHROME_PATH) {
       console.log(
-        `[Puppeteer] Using system Chromium from CHROME_PATH: ${process.env.CHROME_PATH}`
+        `[Puppeteer] Using system Chromium from CHROME_PATH: ${process.env.CHROME_PATH}`,
       );
       launchOptions.executablePath = process.env.CHROME_PATH;
     } else {
       console.log(
         `[Puppeteer] Using auto-detected Chrome from cache: ${
           process.env.PUPPETEER_CACHE_DIR || "~/.cache/puppeteer"
-        }`
+        }`,
       );
       // Let Puppeteer find Chrome in its cache directory
     }
@@ -109,7 +109,7 @@ export class InstagramPuppeteerScraper {
       throw new MediaNotFoundError(
         `Failed to launch browser: ${
           error instanceof Error ? error.message : "Unknown error"
-        }`
+        }`,
       );
     }
   }
@@ -199,7 +199,7 @@ export class InstagramPuppeteerScraper {
 
       if (isLoginRequired) {
         throw new PrivateMediaError(
-          "This content is private or requires login"
+          "This content is private or requires login",
         );
       }
 
@@ -278,7 +278,7 @@ export class InstagramPuppeteerScraper {
       }
 
       throw new MediaNotFoundError(
-        "Could not find video URL in page content (all methods exhausted)"
+        "Could not find video URL in page content (all methods exhausted)",
       );
     } catch (error) {
       if (
@@ -292,7 +292,7 @@ export class InstagramPuppeteerScraper {
       throw new MediaNotFoundError(
         `Failed to scrape Instagram reel: ${
           error instanceof Error ? error.message : "Unknown error"
-        }`
+        }`,
       );
     } finally {
       const totalTime = Date.now() - perfStart;
@@ -305,7 +305,7 @@ export class InstagramPuppeteerScraper {
    * Extract metadata from page
    */
   private async extractMetadata(
-    page: Page
+    page: Page,
   ): Promise<Partial<InstagramMediaResult>> {
     return await page.evaluate(() => {
       // @ts-ignore - document is available in browser context
@@ -350,7 +350,7 @@ export class InstagramPuppeteerScraper {
    * Extract video URL from JSON-LD structured data
    */
   private async extractFromJsonLd(
-    page: Page
+    page: Page,
   ): Promise<InstagramMediaResult | null> {
     return await page.evaluate(() => {
       // @ts-ignore - document and window are available in browser context
@@ -358,7 +358,7 @@ export class InstagramPuppeteerScraper {
       // @ts-ignore
       const win = window as any;
       const scripts = Array.from(
-        doc.querySelectorAll('script[type="application/ld+json"]')
+        doc.querySelectorAll('script[type="application/ld+json"]'),
       );
 
       for (const script of scripts) {
@@ -390,7 +390,7 @@ export class InstagramPuppeteerScraper {
    * Extract video URL from inline scripts
    */
   private async extractFromScripts(
-    page: Page
+    page: Page,
   ): Promise<InstagramMediaResult | null> {
     return await page.evaluate(() => {
       // @ts-ignore - document and window are available in browser context
@@ -404,7 +404,7 @@ export class InstagramPuppeteerScraper {
 
         // Pattern 1: Look for video_url in Instagram's data
         const videoUrlMatch = content.match(
-          /"video_url":"([^"]+)"|'video_url':'([^']+)'/
+          /"video_url":"([^"]+)"|'video_url':'([^']+)'/,
         );
         if (videoUrlMatch) {
           const videoUrl = videoUrlMatch[1] || videoUrlMatch[2];
@@ -438,7 +438,7 @@ export class InstagramPuppeteerScraper {
 
         // Pattern 3: Look for video_versions array (Instagram API format)
         const videoVersionsMatch = content.match(
-          /"video_versions":\[([^\]]+)\]/
+          /"video_versions":\[([^\]]+)\]/,
         );
         if (videoVersionsMatch) {
           const versionsStr = videoVersionsMatch[1];
@@ -472,7 +472,7 @@ export class InstagramPuppeteerScraper {
 
         // Pattern 5: Look for contentUrl in JSON-LD within scripts
         const contentUrlMatch = content.match(
-          /"contentUrl":"(https:\/\/[^"]+)"/
+          /"contentUrl":"(https:\/\/[^"]+)"/,
         );
         if (contentUrlMatch) {
           const videoUrl = contentUrlMatch[1]
@@ -494,14 +494,21 @@ export class InstagramPuppeteerScraper {
 
 /**
  * Fetch Instagram media using Puppeteer scraper with browser pooling
+ * Includes retry logic for transient failures
  */
 export async function fetchInstagramMediaWithPuppeteer(
-  url: string
+  url: string,
+  retryCount: number = 0,
 ): Promise<InstagramMediaResult> {
-  // Use browser pool instead of creating new instance
-  const page = await browserPool.getNewPage();
+  const MAX_RETRIES = 2;
+
+  // Declare page outside try block so it's accessible in finally
+  let page: Page | null = null;
 
   try {
+    // Use browser pool instead of creating new instance
+    page = await browserPool.getNewPage();
+
     // Set viewport for faster rendering
     await page.setViewport({ width: 1280, height: 720 });
 
@@ -543,7 +550,7 @@ export async function fetchInstagramMediaWithPuppeteer(
         // Ignore errors from aborted/closed requests
         console.warn(
           `[Puppeteer] Request handler error (non-critical):`,
-          error instanceof Error ? error.message : error
+          error instanceof Error ? error.message : error,
         );
       }
     };
@@ -555,11 +562,25 @@ export async function fetchInstagramMediaWithPuppeteer(
     try {
       await page.goto(url, {
         waitUntil: "domcontentloaded",
-        timeout: 15000,
+        timeout: 30000, // Increased timeout for slower connections
       });
     } catch (error) {
       // Clean up request handler on navigation failure
       page.off("request", requestHandler);
+
+      // Handle specific navigation errors
+      if (error instanceof Error) {
+        if (error.message.includes("net::ERR_")) {
+          throw new MediaNotFoundError(
+            `Network error accessing Instagram: ${error.message}`,
+          );
+        }
+        if (error.message.includes("timeout")) {
+          throw new MediaNotFoundError(
+            "Instagram page took too long to load. Please try again.",
+          );
+        }
+      }
       throw error;
     }
 
@@ -630,27 +651,55 @@ export async function fetchInstagramMediaWithPuppeteer(
   } catch (error) {
     // Handle specific Puppeteer errors
     if (error instanceof Error) {
-      if (
+      const isConnectionError =
         error.message.includes("detached") ||
-        error.message.includes("closed")
-      ) {
-        throw new MediaNotFoundError("Browser connection lost during scraping");
+        error.message.includes("closed") ||
+        error.message.includes("Target closed") ||
+        error.message.includes("Session closed") ||
+        error.message.includes("Protocol error");
+
+      // Retry on connection errors
+      if (isConnectionError && retryCount < MAX_RETRIES) {
+        console.warn(
+          `[Puppeteer] Connection error, retrying (${retryCount + 1}/${MAX_RETRIES})...`,
+        );
+        // Wait before retry
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        // Force browser restart
+        await browserPool.shutdown();
+        return fetchInstagramMediaWithPuppeteer(url, retryCount + 1);
+      }
+
+      if (isConnectionError) {
+        throw new MediaNotFoundError(
+          "Browser connection lost during scraping. This may be due to Instagram blocking or system resources. Please try again.",
+        );
       }
       if (
         error.message.includes("timeout") ||
         error.message.includes("Navigation timeout")
       ) {
-        throw new MediaNotFoundError("Instagram page took too long to load");
+        throw new MediaNotFoundError(
+          "Instagram page took too long to load. Please check your internet connection and try again.",
+        );
+      }
+      if (error.message.includes("net::ERR_")) {
+        throw new MediaNotFoundError(
+          `Network error: ${error.message}. Please check your internet connection.`,
+        );
       }
     }
     throw error;
   } finally {
     try {
-      await browserPool.closePage(page);
+      // Check if page is still open before closing
+      if (page && !page.isClosed()) {
+        await browserPool.closePage(page);
+      }
     } catch (error) {
       console.warn(
         `[Puppeteer] Error closing page (non-critical):`,
-        error instanceof Error ? error.message : error
+        error instanceof Error ? error.message : error,
       );
     }
   }

@@ -107,7 +107,7 @@ export interface ReelProcessingResultV2 {
  * Measures the execution time of an async function
  */
 async function measureTime<T>(
-  fn: () => Promise<T>
+  fn: () => Promise<T>,
 ): Promise<{ result: T; durationMs: number }> {
   const start = Date.now();
   const result = await fn();
@@ -119,7 +119,7 @@ async function measureTime<T>(
  * Upload frame to Cloudinary temporarily for OCR
  */
 async function uploadFrameToCloudinary(
-  filePath: string
+  filePath: string,
 ): Promise<{ url: string; publicId: string }> {
   const result = await cloudinary.uploader.upload(filePath, {
     folder: "reel-frames-temp",
@@ -136,13 +136,19 @@ async function uploadFrameToCloudinary(
  * Master orchestrator for processing Instagram Reels (V2 - Multimodal)
  */
 export async function processReelV2(
-  instagramUrl: string
+  instagramUrl: string,
 ): Promise<ReelProcessingResultV2> {
   console.log(`\n${"=".repeat(60)}`);
   console.log(
-    `[Reel Processor V2] Starting multimodal processing for: ${instagramUrl}`
+    `[Reel Processor V2] Starting multimodal processing for: ${instagramUrl}`,
   );
   console.log(`${"=".repeat(60)}\n`);
+
+  // Log memory before processing
+  const memBefore = process.memoryUsage();
+  console.log(
+    `[Memory] Before processing: ${Math.round(memBefore.heapUsed / 1024 / 1024)}MB heap, ${Math.round(memBefore.rss / 1024 / 1024)}MB RSS`,
+  );
 
   const startTime = Date.now();
   const tempFiles: string[] = [];
@@ -152,14 +158,14 @@ export async function processReelV2(
     // Step 1: Fetch Instagram media
     console.log(`\n[Step 1/10] Fetching Instagram media...`);
     const { result: mediaResult, durationMs: fetchMs } = await measureTime(() =>
-      fetchInstagramMedia(instagramUrl)
+      fetchInstagramMedia(instagramUrl),
     );
     console.log(`✓ Fetch complete in ${fetchMs}ms`);
 
     // Step 2: Download video
     console.log(`\n[Step 2/10] Downloading video...`);
     const { result: videoResult, durationMs: downloadMs } = await measureTime(
-      () => downloadVideo(mediaResult.videoUrl)
+      () => downloadVideo(mediaResult.videoUrl),
     );
     tempFiles.push(videoResult.filePath);
     console.log(
@@ -167,7 +173,7 @@ export async function processReelV2(
         videoResult.sizeBytes /
         1024 /
         1024
-      ).toFixed(2)}MB)`
+      ).toFixed(2)}MB)`,
     );
 
     // Step 3: Extract audio
@@ -184,7 +190,7 @@ export async function processReelV2(
     console.log(`\n[Step 4/10] Extracting ${frameTimestamps.length} frames...`);
     const { result: frameResult, durationMs: frameExtractionMs } =
       await measureTime(() =>
-        extractFrames(videoResult.filePath, frameTimestamps)
+        extractFrames(videoResult.filePath, frameTimestamps),
       );
     console.log(`✓ Frame extraction complete in ${frameExtractionMs}ms`);
 
@@ -194,7 +200,7 @@ export async function processReelV2(
     let thumbnailMs: number;
     try {
       const measured = await measureTime(() =>
-        generateAndUploadThumbnail(videoResult.filePath)
+        generateAndUploadThumbnail(videoResult.filePath),
       );
       thumbnailResult = measured.result;
       thumbnailMs = measured.durationMs;
@@ -202,7 +208,7 @@ export async function processReelV2(
     } catch (error) {
       console.error(
         `✗ Thumbnail generation failed:`,
-        error instanceof Error ? error.message : error
+        error instanceof Error ? error.message : error,
       );
       thumbnailResult = { thumbnailUrl: "", publicId: "" };
       thumbnailMs = 0;
@@ -213,12 +219,12 @@ export async function processReelV2(
     const { result: transcriptResult, durationMs: transcriptionMs } =
       await measureTime(() => transcribeAudioWithGemini(audioResult.audioPath));
     console.log(
-      `✓ Transcription complete in ${transcriptionMs}ms (${transcriptResult.transcript.length} characters)`
+      `✓ Transcription complete in ${transcriptionMs}ms (${transcriptResult.transcript.length} characters)`,
     );
 
     // Step 7: OCR all frames (OPTIMIZED: Parallel upload and batch OCR)
     console.log(
-      `\n[Step 7/10] Extracting text from ${frameResult.frames.length} frames (optimized)...`
+      `\n[Step 7/10] Extracting text from ${frameResult.frames.length} frames (optimized)...`,
     );
     let visualTexts: Array<{
       frameTimestamp: number;
@@ -232,7 +238,7 @@ export async function processReelV2(
 
       // Upload frames to Cloudinary in parallel (faster than sequential)
       console.log(
-        `[OCR] Uploading ${frameResult.frames.length} frames to Cloudinary...`
+        `[OCR] Uploading ${frameResult.frames.length} frames to Cloudinary...`,
       );
       const frameUploads = await Promise.all(
         frameResult.frames.map(async (frame) => {
@@ -245,19 +251,19 @@ export async function processReelV2(
             };
           } catch (error) {
             console.warn(
-              `[OCR] Failed to upload frame at ${frame.timestamp}s, skipping...`
+              `[OCR] Failed to upload frame at ${frame.timestamp}s, skipping...`,
             );
             return null;
           }
-        })
+        }),
       );
 
       // Filter out failed uploads
       const validFrameUploads = frameUploads.filter(
-        (f): f is { timestamp: number; imageUrl: string } => f !== null
+        (f): f is { timestamp: number; imageUrl: string } => f !== null,
       );
       console.log(
-        `[OCR] Successfully uploaded ${validFrameUploads.length}/${frameResult.frames.length} frames`
+        `[OCR] Successfully uploaded ${validFrameUploads.length}/${frameResult.frames.length} frames`,
       );
 
       if (validFrameUploads.length > 0) {
@@ -278,12 +284,12 @@ export async function processReelV2(
 
       const successfulOcr = visualTexts.length;
       console.log(
-        `✓ OCR complete in ${ocrMs}ms (${successfulOcr}/${frameResult.frames.length} frames with text)`
+        `✓ OCR complete in ${ocrMs}ms (${successfulOcr}/${frameResult.frames.length} frames with text)`,
       );
     } catch (error) {
       console.error(
         `✗ OCR extraction failed (non-critical):`,
-        error instanceof Error ? error.message : error
+        error instanceof Error ? error.message : error,
       );
     }
 
@@ -296,19 +302,19 @@ export async function processReelV2(
       try {
         const { result: captionResult, durationMs: captionDuration } =
           await measureTime(() =>
-            analyzeCaptionWithAI(mediaResult.description!)
+            analyzeCaptionWithAI(mediaResult.description!),
           );
 
         captionAnalysis = captionResult;
         captionMs = captionDuration;
 
         console.log(
-          `✓ Caption analysis complete in ${captionMs}ms (${captionAnalysis.keyPoints.length} key points, ${captionAnalysis.hashtags.length} hashtags)`
+          `✓ Caption analysis complete in ${captionMs}ms (${captionAnalysis.keyPoints.length} key points, ${captionAnalysis.hashtags.length} hashtags)`,
         );
       } catch (error) {
         console.error(
           `✗ Caption analysis failed (non-critical):`,
-          error instanceof Error ? error.message : error
+          error instanceof Error ? error.message : error,
         );
       }
     } else {
@@ -329,7 +335,7 @@ export async function processReelV2(
       {
         caption: mediaResult.description,
         description: mediaResult.description,
-      }
+      },
     );
 
     // Step 10: Extract entities from all sources
@@ -344,7 +350,7 @@ export async function processReelV2(
           const visualEntities = await Promise.all(
             visualTexts
               .filter((v) => v.text.length > 0)
-              .map((v) => extractEntities(v.text, "visual", v.frameTimestamp))
+              .map((v) => extractEntities(v.text, "visual", v.frameTimestamp)),
           );
 
           // Extract from caption if available
@@ -366,12 +372,12 @@ export async function processReelV2(
       entityExtractionMs = entityDuration;
 
       console.log(
-        `✓ Entity extraction complete in ${entityExtractionMs}ms (${allEntities.length} unique entities)`
+        `✓ Entity extraction complete in ${entityExtractionMs}ms (${allEntities.length} unique entities)`,
       );
     } catch (error) {
       console.error(
         `✗ Entity extraction failed (non-critical):`,
-        error instanceof Error ? error.message : error
+        error instanceof Error ? error.message : error,
       );
     }
 
@@ -393,7 +399,7 @@ export async function processReelV2(
               (e) => ({
                 value: e.value,
                 context: e.context,
-              })
+              }),
             ),
             sourceFrames: categorized[SignificantInfoType.TOOLS_PLATFORMS]
               .map((e) => e.timestamp)
@@ -424,7 +430,7 @@ export async function processReelV2(
               (e) => ({
                 value: e.value,
                 context: e.context,
-              })
+              }),
             ),
             sourceFrames: categorized[SignificantInfoType.LISTS_SEQUENCES]
               .map((e) => e.timestamp)
@@ -440,7 +446,7 @@ export async function processReelV2(
               (e) => ({
                 value: e.value,
                 context: e.context,
-              })
+              }),
             ),
             sourceFrames: categorized[SignificantInfoType.NUMBERS_METRICS]
               .map((e) => e.timestamp)
@@ -471,7 +477,7 @@ export async function processReelV2(
               (e) => ({
                 value: e.value,
                 context: e.context,
-              })
+              }),
             ),
             sourceFrames: categorized[SignificantInfoType.RECOMMENDATIONS]
               .map((e) => e.timestamp)
@@ -489,7 +495,7 @@ export async function processReelV2(
     console.log(`Visual insights: ${allEntities.length} entities extracted`);
     if (captionAnalysis && captionAnalysis.hasImportantInfo) {
       console.log(
-        `Caption insights: ${captionAnalysis.keyPoints.length} key points, ${captionAnalysis.hashtags.length} hashtags, ${captionAnalysis.urls.length} URLs`
+        `Caption insights: ${captionAnalysis.keyPoints.length} key points, ${captionAnalysis.hashtags.length} hashtags, ${captionAnalysis.urls.length} URLs`,
       );
     }
     console.log(`${"=".repeat(60)}\n`);
@@ -582,7 +588,7 @@ export async function processReelV2(
     throw new ReelProcessingError(
       `Reel processing V2 failed at step: ${step}`,
       step,
-      error instanceof Error ? error : new Error(String(error))
+      error instanceof Error ? error : new Error(String(error)),
     );
   } finally {
     // Clean up all temp files
@@ -606,11 +612,26 @@ export async function processReelV2(
       } catch (error) {
         console.warn(
           `[Cleanup] Failed to delete Cloudinary image ${publicId}:`,
-          error
+          error,
         );
       }
     }
 
     console.log(`[Cleanup] Cleanup complete\n`);
+
+    // Force garbage collection if available (requires --expose-gc flag)
+    if (global.gc) {
+      console.log(`[Memory] Running garbage collection...`);
+      global.gc();
+      const memAfter = process.memoryUsage();
+      console.log(
+        `[Memory] After GC: ${Math.round(memAfter.heapUsed / 1024 / 1024)}MB heap, ${Math.round(memAfter.rss / 1024 / 1024)}MB RSS`,
+      );
+    } else {
+      const memAfter = process.memoryUsage();
+      console.log(
+        `[Memory] After processing: ${Math.round(memAfter.heapUsed / 1024 / 1024)}MB heap, ${Math.round(memAfter.rss / 1024 / 1024)}MB RSS`,
+      );
+    }
   }
 }

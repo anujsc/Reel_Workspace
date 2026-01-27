@@ -72,6 +72,9 @@ class BrowserPool {
         `[BrowserPool] Launching browser (attempt ${this.launchAttempts})...`,
       );
 
+      const isProduction = process.env.NODE_ENV === "production";
+      const isWindows = process.platform === "win32";
+
       const launchOptions: any = {
         headless: "new",
         args: [
@@ -89,9 +92,10 @@ class BrowserPool {
           "--disable-sync",
           "--no-first-run",
 
-          // Memory optimizations for Render free tier
-          "--single-process",
-          "--no-zygote",
+          // Memory optimizations - only for production Linux
+          ...(isProduction && !isWindows
+            ? ["--single-process", "--no-zygote"]
+            : []),
 
           // Existing optimizations
           "--disable-accelerated-2d-canvas",
@@ -102,14 +106,32 @@ class BrowserPool {
           "--disable-background-timer-throttling",
           "--disable-backgrounding-occluded-windows",
           "--disable-renderer-backgrounding",
+
+          // Additional stability args for Windows
+          ...(isWindows
+            ? [
+                "--disable-features=VizDisplayCompositor",
+                "--disable-features=RendererCodeIntegrity",
+              ]
+            : []),
         ],
+        // Increase timeout for slower systems
+        timeout: 60000,
       };
 
       // Determine Chrome executable path
       if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+        console.log(
+          `[BrowserPool] Using PUPPETEER_EXECUTABLE_PATH: ${process.env.PUPPETEER_EXECUTABLE_PATH}`,
+        );
         launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
       } else if (process.env.CHROME_PATH) {
+        console.log(
+          `[BrowserPool] Using CHROME_PATH: ${process.env.CHROME_PATH}`,
+        );
         launchOptions.executablePath = process.env.CHROME_PATH;
+      } else {
+        console.log(`[BrowserPool] Using Puppeteer bundled Chromium`);
       }
 
       this.browser = await puppeteer.launch(launchOptions);

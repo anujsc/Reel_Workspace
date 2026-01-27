@@ -2,9 +2,8 @@ import { Response } from "express";
 import { AuthRequest } from "../middleware/auth.js";
 import { Reel } from "../models/Reel.js";
 import { Folder } from "../models/Folder.js";
-import { processReel } from "../services/reelProcessor.js";
-import { processReelOptimized } from "../services/reelProcessorOptimized.js";
 import { processReelV2 } from "../services/reelProcessorV2.js";
+import { processingQueue } from "../services/processingQueue.js";
 import {
   successResponse,
   createdResponse,
@@ -17,10 +16,6 @@ import {
   ValidationError,
 } from "../utils/errors.js";
 import mongoose from "mongoose";
-
-// Use V2 multimodal processor by default (can be toggled via env var)
-const USE_V2_PROCESSOR = process.env.USE_V2_PROCESSOR !== "false";
-const USE_OPTIMIZED = process.env.USE_OPTIMIZED_PROCESSOR !== "false";
 
 /**
  * Extract and create a new reel from Instagram URL
@@ -70,25 +65,14 @@ export const extractReel = async (
     }
 
     console.log(`[Reel Controller] Processing reel...`);
-    // Process the reel using V2 multimodal processor by default
-    let processingResult;
-    try {
-      processingResult = USE_V2_PROCESSOR
-        ? await processReelV2(instagramUrl)
-        : USE_OPTIMIZED
-          ? await processReelOptimized(instagramUrl)
-          : await processReel(instagramUrl);
-    } catch (error: any) {
-      // If V2 fails at fetch stage, try V1 as fallback
-      if (USE_V2_PROCESSOR && error.message?.includes("fetch")) {
-        console.log(`[Reel Controller] V2 fetch failed, trying V1 fallback...`);
-        processingResult = USE_OPTIMIZED
-          ? await processReelOptimized(instagramUrl)
-          : await processReel(instagramUrl);
-      } else {
-        throw error;
-      }
-    }
+
+    // Use processing queue to prevent concurrent processing (CRITICAL for 512MB RAM)
+    const processingResult = await processingQueue.add(
+      userId.toString(),
+      instagramUrl,
+      async () => await processReelV2(instagramUrl),
+    );
+
     console.log(`[Reel Controller] ✓ Reel processed successfully`);
 
     // Find or create folder based on suggested category

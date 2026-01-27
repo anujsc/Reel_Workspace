@@ -20,6 +20,7 @@ import {
   getFilterStats,
 } from "../controllers/search.controller.js";
 import { asyncHandler } from "../middleware/errorHandler.js";
+import { reelExtractionLimiter } from "../middleware/rateLimiter.js";
 
 const router = Router();
 
@@ -27,13 +28,15 @@ const router = Router();
  * @route   POST /api/reel/extract
  * @desc    Extract and create a new reel from Instagram URL
  * @access  Private
+ * @note    Rate limited to 1 request per minute to prevent memory spikes
  */
 router.post(
   "/extract",
+  reelExtractionLimiter, // CRITICAL: Prevent concurrent processing
   protect,
   reelExtractionValidation,
   validationHandler,
-  asyncHandler(extractReel)
+  asyncHandler(extractReel),
 );
 
 /**
@@ -53,7 +56,7 @@ router.get(
   protect,
   filterQueryValidation,
   validationHandler,
-  asyncHandler(filterReels)
+  asyncHandler(filterReels),
 );
 
 /**
@@ -66,7 +69,7 @@ router.get(
   protect,
   paginationValidation,
   validationHandler,
-  asyncHandler(getAllReels)
+  asyncHandler(getAllReels),
 );
 
 /**
@@ -79,7 +82,7 @@ router.get(
   protect,
   objectIdValidation,
   validationHandler,
-  asyncHandler(getReelById)
+  asyncHandler(getReelById),
 );
 
 /**
@@ -93,7 +96,7 @@ router.patch(
   objectIdValidation,
   reelUpdateValidation,
   validationHandler,
-  asyncHandler(updateReel)
+  asyncHandler(updateReel),
 );
 
 /**
@@ -106,7 +109,7 @@ router.delete(
   protect,
   objectIdValidation,
   validationHandler,
-  asyncHandler(deleteReel)
+  asyncHandler(deleteReel),
 );
 
 export { router as reelRoutes };

@@ -5,9 +5,7 @@ import {
   PrivateMediaError,
   UnsupportedMediaError,
 } from "../utils/errors.js";
-import { fetchInstagramMediaWithYtDlp } from "./ytdlpFetcher.js";
 import { fetchInstagramMediaWithPuppeteer } from "./puppeteerScraper.js";
-import { fetchInstagramMediaWithInstaLoader } from "./instaLoaderScraper.js";
 
 /**
  * Result from Instagram media fetch
@@ -56,7 +54,7 @@ function cleanInstagramUrl(url: string): string {
 function validateInstagramUrl(url: string): void {
   if (!INSTAGRAM_URL_REGEX.test(url)) {
     throw new InvalidInstagramUrlError(
-      "URL must be a valid Instagram reel, post, or story URL"
+      "URL must be a valid Instagram reel, post, or story URL",
     );
   }
 }
@@ -71,11 +69,10 @@ function sleep(ms: number): Promise<void> {
 /**
  * Fetch Instagram media using multiple methods with fallback chain:
  * 1. Puppeteer (browser automation - best for deployment)
- * 2. InstaLoader (lightweight HTTP scraper - no browser needed)
- * 3. Cobalt API (external API - last resort)
+ * 2. Cobalt API (external API - fallback)
  */
 export async function fetchInstagramMedia(
-  instagramUrl: string
+  instagramUrl: string,
 ): Promise<InstagramMediaResult> {
   // Validate URL format
   validateInstagramUrl(instagramUrl);
@@ -100,66 +97,30 @@ export async function fetchInstagramMedia(
   ) {
     try {
       console.log(
-        `[Instagram Fetcher] Attempting fetch with Puppeteer scraper (PRIMARY)...`
+        `[Instagram Fetcher] Attempting fetch with Puppeteer scraper (PRIMARY)...`,
       );
       const result = await fetchInstagramMediaWithPuppeteer(cleanUrl);
       console.log(`[Instagram Fetcher] ✓ Successfully fetched with Puppeteer`);
       return result;
     } catch (error) {
       console.warn(
-        `[Instagram Fetcher] Puppeteer failed, trying fallback methods...`
+        `[Instagram Fetcher] Puppeteer failed, trying fallback methods...`,
       );
       console.warn(
         `[Instagram Fetcher] Puppeteer error:`,
-        error instanceof Error ? error.message : error
+        error instanceof Error ? error.message : error,
       );
-      // Continue to next method
+
+      // If Puppeteer is the only method, throw the error
+      if (scrapingMethod === "puppeteer") {
+        throw error;
+      }
+      // Continue to next method only if scrapingMethod is "auto"
     }
   }
 
-  // Method 2: Try yt-dlp (only if explicitly enabled)
-  if (useYtDlp) {
-    try {
-      console.log(`[Instagram Fetcher] Attempting fetch with yt-dlp...`);
-      const result = await fetchInstagramMediaWithYtDlp(cleanUrl);
-      console.log(`[Instagram Fetcher] ✓ Successfully fetched with yt-dlp`);
-      return result;
-    } catch (error) {
-      console.warn(
-        `[Instagram Fetcher] yt-dlp failed, trying other fallback methods...`
-      );
-      console.warn(
-        `[Instagram Fetcher] yt-dlp error:`,
-        error instanceof Error ? error.message : error
-      );
-      // Continue to fallback methods
-    }
-  } else {
-    console.log(
-      `[Instagram Fetcher] yt-dlp disabled (set USE_YTDLP=true to enable)`
-    );
-  }
-
-  // Method 3: Try lightweight InstaLoader (no browser required)
-  try {
-    console.log(
-      `[Instagram Fetcher] Attempting fetch with InstaLoader (lightweight)...`
-    );
-    const result = await fetchInstagramMediaWithInstaLoader(cleanUrl);
-    console.log(`[Instagram Fetcher] ✓ Successfully fetched with InstaLoader`);
-    return result;
-  } catch (error) {
-    console.warn(
-      `[Instagram Fetcher] InstaLoader failed, trying Cobalt API...`
-    );
-    console.warn(
-      `[Instagram Fetcher] InstaLoader error:`,
-      error instanceof Error ? error.message : error
-    );
-    // Continue to Cobalt fallback
-  }
-
-  // Method 4: Try Cobalt API (last resort)
+  // Method 2: Try Cobalt API (fallback)
+  // Cobalt API is used as last resort fallback
   const cobaltApiUrl = process.env.COBALT_API_URL || "https://api.cobalt.tools";
 
   let lastError: Error | null = null;
@@ -170,7 +131,7 @@ export async function fetchInstagramMedia(
       console.log(
         `[Instagram Fetcher] Attempt ${
           attempt + 1
-        }/${MAX_RETRIES} for ${cleanUrl}`
+        }/${MAX_RETRIES} for ${cleanUrl}`,
       );
 
       const response = await axios.post<CobaltResponse>(
@@ -192,7 +153,7 @@ export async function fetchInstagramMedia(
             // Authorization: `Bearer ${process.env.COBALT_API_KEY}`,
           },
           timeout: 30000, // 30 second timeout
-        }
+        },
       );
 
       const data = response.data;
@@ -203,7 +164,7 @@ export async function fetchInstagramMedia(
       if (data.status === "error" || data.status === "rate-limit") {
         console.error(`[Instagram Fetcher] Cobalt error: ${data.text}`);
         throw new MediaNotFoundError(
-          data.text || "Cobalt API returned an error"
+          data.text || "Cobalt API returned an error",
         );
       }
 
@@ -215,7 +176,7 @@ export async function fetchInstagramMedia(
       } else if (data.picker && data.picker.length > 0) {
         // Find video in picker
         const videoItem = data.picker.find((item: any) =>
-          item.type.includes("video")
+          item.type.includes("video"),
         );
         videoUrl = videoItem?.url;
       }
@@ -223,7 +184,7 @@ export async function fetchInstagramMedia(
       if (!videoUrl) {
         console.error(
           `[Instagram Fetcher] No video URL in response:`,
-          JSON.stringify(data, null, 2)
+          JSON.stringify(data, null, 2),
         );
         throw new MediaNotFoundError("No video URL found in Cobalt response");
       }
@@ -253,13 +214,13 @@ export async function fetchInstagramMedia(
         console.error(
           `[Instagram Fetcher] Axios error:`,
           axiosError.response?.status,
-          axiosError.response?.data
+          axiosError.response?.data,
         );
 
         // Private account or forbidden
         if (axiosError.response?.status === 403) {
           throw new PrivateMediaError(
-            "Cannot access private or restricted media"
+            "Cannot access private or restricted media",
           );
         }
 
@@ -276,7 +237,7 @@ export async function fetchInstagramMedia(
           // Check for JWT authentication error
           if (responseData?.error?.code === "error.api.auth.jwt.missing") {
             throw new MediaNotFoundError(
-              "Cobalt API requires authentication. Please self-host Cobalt or use an alternative (see COBALT_AUTH_SOLUTION.md)"
+              "Cobalt API requires authentication. Please self-host Cobalt or use an alternative (see COBALT_AUTH_SOLUTION.md)",
             );
           }
 
@@ -290,7 +251,7 @@ export async function fetchInstagramMedia(
           // If it's a Cobalt API error, include the message
           if (responseData?.text) {
             throw new MediaNotFoundError(
-              `Cobalt API error: ${responseData.text}`
+              `Cobalt API error: ${responseData.text}`,
             );
           }
         }
@@ -301,7 +262,7 @@ export async function fetchInstagramMedia(
         const delay = RETRY_DELAYS[attempt];
         console.log(
           `[Instagram Fetcher] Retrying in ${delay}ms after error:`,
-          error instanceof Error ? error.message : error
+          error instanceof Error ? error.message : error,
         );
         await sleep(delay);
       }
@@ -310,6 +271,6 @@ export async function fetchInstagramMedia(
 
   // All retries failed
   throw new MediaNotFoundError(
-    `Failed to fetch Instagram media after ${MAX_RETRIES} attempts: ${lastError?.message}`
+    `Failed to fetch Instagram media after ${MAX_RETRIES} attempts: ${lastError?.message}`,
   );
 }
