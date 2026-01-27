@@ -124,7 +124,7 @@ const visualTextSchema = new Schema<IVisualText>(
     text: { type: String, required: true },
     confidence: { type: Number, required: true, min: 0, max: 1 },
   },
-  { _id: false }
+  { _id: false },
 );
 
 /**
@@ -132,12 +132,22 @@ const visualTextSchema = new Schema<IVisualText>(
  */
 const rawDataSchema = new Schema<IRawData>(
   {
-    audioTranscript: { type: String, default: "" },
+    audioTranscript: {
+      type: String,
+      default: "",
+      maxlength: [50000, "Audio transcript cannot exceed 50,000 characters"],
+    },
     visualTexts: { type: [visualTextSchema], default: [] },
-    instagramCaption: { type: String },
-    instagramDescription: { type: String },
+    instagramCaption: {
+      type: String,
+      maxlength: [2200, "Instagram caption cannot exceed 2,200 characters"],
+    },
+    instagramDescription: {
+      type: String,
+      maxlength: [2200, "Instagram description cannot exceed 2,200 characters"],
+    },
   },
-  { _id: false }
+  { _id: false },
 );
 
 /**
@@ -156,7 +166,7 @@ const insightItemSchema = new Schema<IInsightItem>(
       default: undefined,
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 /**
@@ -170,7 +180,7 @@ const visualInsightSchema = new Schema<IVisualInsight>(
     sourceFrames: { type: [Number], default: [] },
     confidence: { type: Number, required: true, min: 0, max: 1 },
   },
-  { _id: false }
+  { _id: false },
 );
 
 /**
@@ -185,7 +195,7 @@ const multimodalMetadataSchema = new Schema<IMultimodalMetadata>(
     hasAudioTranscript: { type: Boolean, required: true },
     hasMetadata: { type: Boolean, required: true },
   },
-  { _id: false }
+  { _id: false },
 );
 
 /**
@@ -197,7 +207,7 @@ const quizQuestionSchema = new Schema<IQuizQuestion>(
     options: { type: [String], required: true },
     answer: { type: String, required: true },
   },
-  { _id: false }
+  { _id: false },
 );
 
 /**
@@ -208,7 +218,7 @@ const commonPitfallSchema = new Schema<ICommonPitfall>(
     pitfall: { type: String, required: true },
     solution: { type: String, required: true },
   },
-  { _id: false }
+  { _id: false },
 );
 
 /**
@@ -250,14 +260,20 @@ const reelSchema = new Schema<IReel>(
     transcript: {
       type: String,
       default: "",
+      maxlength: [50000, "Transcript cannot exceed 50,000 characters"], // ~50KB limit
     },
     summary: {
       type: String,
       default: "",
+      maxlength: [5000, "Summary cannot exceed 5,000 characters"], // ~5KB limit
     },
     detailedExplanation: {
       type: String,
       default: "",
+      maxlength: [
+        10000,
+        "Detailed explanation cannot exceed 10,000 characters",
+      ], // ~10KB limit
     },
     keyPoints: {
       type: [String],
@@ -299,6 +315,7 @@ const reelSchema = new Schema<IReel>(
     ocrText: {
       type: String,
       default: "",
+      maxlength: [20000, "OCR text cannot exceed 20,000 characters"], // ~20KB limit
     },
     durationSeconds: {
       type: Number,
@@ -334,7 +351,7 @@ const reelSchema = new Schema<IReel>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Compound indexes for efficient queries
@@ -348,7 +365,7 @@ reelSchema.index(
   {
     unique: true,
     partialFilterExpression: { isDeleted: false },
-  }
+  },
 );
 
 // Text search index for search functionality

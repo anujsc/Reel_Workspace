@@ -43,13 +43,13 @@ const USE_OPTIMIZED = process.env.USE_OPTIMIZED_PROCESSOR !== "false";
  */
 export const extractReel = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   const { instagramUrl } = req.body;
   const userId = req.user!._id;
 
   console.log(
-    `[Reel Controller] Starting extraction for user ${userId}, URL: ${instagramUrl}`
+    `[Reel Controller] Starting extraction for user ${userId}, URL: ${instagramUrl}`,
   );
 
   try {
@@ -58,11 +58,13 @@ export const extractReel = async (
       sourceUrl: instagramUrl,
       userId,
       isDeleted: false,
-    });
+    })
+      .select("_id")
+      .lean();
 
     if (existingReel) {
       console.log(
-        `[Reel Controller] Duplicate reel found for URL: ${instagramUrl}`
+        `[Reel Controller] Duplicate reel found for URL: ${instagramUrl}`,
       );
       throw new ConflictError("This reel has already been extracted");
     }
@@ -74,8 +76,8 @@ export const extractReel = async (
       processingResult = USE_V2_PROCESSOR
         ? await processReelV2(instagramUrl)
         : USE_OPTIMIZED
-        ? await processReelOptimized(instagramUrl)
-        : await processReel(instagramUrl);
+          ? await processReelOptimized(instagramUrl)
+          : await processReel(instagramUrl);
     } catch (error: any) {
       // If V2 fails at fetch stage, try V1 as fallback
       if (USE_V2_PROCESSOR && error.message?.includes("fetch")) {
@@ -97,7 +99,7 @@ export const extractReel = async (
 
     if (!folder) {
       console.log(
-        `[Reel Controller] Creating new folder: ${processingResult.suggestedFolder}`
+        `[Reel Controller] Creating new folder: ${processingResult.suggestedFolder}`,
       );
       // Create new folder with suggested name
       folder = await Folder.create({
@@ -145,7 +147,7 @@ export const extractReel = async (
     });
 
     console.log(
-      `[Reel Controller] ✓ Reel extraction complete, ID: ${reel._id}`
+      `[Reel Controller] ✓ Reel extraction complete, ID: ${reel._id}`,
     );
 
     createdResponse(
@@ -154,7 +156,7 @@ export const extractReel = async (
         reel,
         timings: processingResult.timings,
       },
-      "Reel extracted successfully"
+      "Reel extracted successfully",
     );
   } catch (error) {
     console.error(`[Reel Controller] ❌ Extraction failed:`, {
@@ -182,7 +184,7 @@ export const extractReel = async (
  */
 export const getAllReels = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   const userId = req.user!._id;
   const limit = parseInt(req.query.limit as string) || 20;
@@ -204,14 +206,15 @@ export const getAllReels = async (
   }
 
   // Get reels with pagination
- const reels = await Reel.find(query)
-  .sort({ createdAt: -1 })
-  .limit(limit)
-  .skip(skip)
-  .populate("folderId", "name color")
-  .select("title summary thumbnailUrl tags folderId createdAt durationSeconds") // ← ADD THIS
-  .lean();
-
+  const reels = await Reel.find(query)
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .skip(skip)
+    .populate("folderId", "name color")
+    .select(
+      "title summary thumbnailUrl tags folderId createdAt durationSeconds",
+    ) // ← ADD THIS
+    .lean();
 
   // Get total count for pagination
   const total = await Reel.countDocuments(query);
@@ -223,7 +226,7 @@ export const getAllReels = async (
     total,
     limit,
     skip,
-    "Reels retrieved successfully"
+    "Reels retrieved successfully",
   );
 };
 
@@ -243,7 +246,7 @@ export const getAllReels = async (
  */
 export const getReelById = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   const { id } = req.params;
   const userId = req.user!._id;
@@ -254,13 +257,13 @@ export const getReelById = async (
   }
 
   // Find reel
-const reel = await Reel.findOne({
-  _id: id,
-  userId,
-  isDeleted: false,
-})
-  .populate("folderId", "name color")
-  .lean(); 
+  const reel = await Reel.findOne({
+    _id: id,
+    userId,
+    isDeleted: false,
+  })
+    .populate("folderId", "name color")
+    .lean();
 
   if (!reel) {
     throw new NotFoundError("Reel not found");
@@ -285,7 +288,7 @@ const reel = await Reel.findOne({
  */
 export const updateReel = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   const { id } = req.params;
   const userId = req.user!._id;
@@ -296,12 +299,14 @@ export const updateReel = async (
     throw new ValidationError("Invalid reel ID format");
   }
 
-  // Find reel
+  // Find reel (only need folderId for update)
   const reel = await Reel.findOne({
     _id: id,
     userId,
     isDeleted: false,
-  });
+  })
+    .select("folderId")
+    .lean();
 
   if (!reel) {
     throw new NotFoundError("Reel not found");
@@ -340,8 +345,11 @@ export const updateReel = async (
   const updatedReel = await Reel.findByIdAndUpdate(
     id,
     { $set: updateData },
-    { new: true, runValidators: true }
-  ).populate("folderId", "name color");
+    { new: true, runValidators: true },
+  )
+    .populate("folderId", "name color")
+    .select("title tags folderId createdAt updatedAt")
+    .lean();
 
   successResponse(res, 200, updatedReel, "Reel updated successfully");
 };
@@ -362,7 +370,7 @@ export const updateReel = async (
  */
 export const deleteReel = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   const { id } = req.params;
   const userId = req.user!._id;
@@ -372,20 +380,21 @@ export const deleteReel = async (
     throw new ValidationError("Invalid reel ID format");
   }
 
-  // Find reel
+  // Find reel (only need folderId for deletion)
   const reel = await Reel.findOne({
     _id: id,
     userId,
     isDeleted: false,
-  });
+  })
+    .select("folderId")
+    .lean();
 
   if (!reel) {
     throw new NotFoundError("Reel not found");
   }
 
-  // Soft delete
-  reel.isDeleted = true;
-  await reel.save();
+  // Soft delete using updateOne (more efficient than loading full document)
+  await Reel.updateOne({ _id: id }, { $set: { isDeleted: true } });
 
   // Decrement folder reel count
   await Folder.findByIdAndUpdate(reel.folderId, {
