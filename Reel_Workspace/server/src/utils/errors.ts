@@ -127,6 +127,12 @@ export class UnsupportedMediaError extends AppError {
   }
 }
 
+export class SocialKitConfigurationError extends AppError {
+  constructor(message: string = "SocialKit is not configured") {
+    super(message, "SOCIALKIT_CONFIGURATION_ERROR", 500, false);
+  }
+}
+
 // Video Download Errors
 export class VideoDownloadError extends AppError {
   constructor(message: string = "Failed to download video") {

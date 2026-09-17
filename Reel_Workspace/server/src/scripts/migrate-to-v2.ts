@@ -17,9 +17,11 @@ dotenv.config();
 async function migrateToV2() {
   try {
     // Connect to MongoDB
-    const mongoUri =
-      process.env.MONGODB_URI || "mongodb://localhost:27017/reelworkspace";
-    console.log(`Connecting to MongoDB: ${mongoUri}`);
+    const mongoUri = process.env.MONGODB_URI;
+    if (!mongoUri) {
+      throw new Error("MONGODB_URI is required to run this migration");
+    }
+    console.log("Connecting to MongoDB...");
 
     await mongoose.connect(mongoUri);
     console.log("✓ Connected to MongoDB\n");

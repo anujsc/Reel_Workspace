@@ -1,3 +1,4 @@
+import dns from "node:dns";
 import mongoose from "mongoose";
 
 const MAX_RETRIES = 3;
@@ -8,6 +9,14 @@ const RETRY_DELAY = 5000; // 5 seconds
  * @returns Promise<void>
  */
 export const connectDB = async (): Promise<void> => {
+  const dnsServers = process.env.MONGODB_DNS_SERVERS?.split(",")
+    .map((server) => server.trim())
+    .filter(Boolean);
+
+  if (dnsServers?.length) {
+    dns.setServers(dnsServers);
+  }
+
   const mongoURI = process.env.MONGODB_URI;
 
   if (!mongoURI) {

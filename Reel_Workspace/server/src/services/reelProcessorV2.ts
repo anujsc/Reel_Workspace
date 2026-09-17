@@ -1,3 +1,5 @@
+import fs from "node:fs/promises";
+import path from "node:path";
 import { fetchInstagramMedia } from "./instagramFetcher.js";
 import { downloadVideo, deleteFile } from "./videoDownloader.js";
 import { extractAudioToMp3, deleteAudioFile } from "./audioExtractor.js";
@@ -8,8 +10,12 @@ import {
 import { transcribeAudioWithGemini } from "./aiTranscript.js";
 import { summarizeWithGroq } from "./aiSummary.js";
 import { extractTextFromFrames } from "./aiOCR.js";
-import { ReelProcessingError } from "../utils/errors.js";
-import { extractFrames, determineFrameSampling } from "./frameExtractor.js";
+import { AppError, ReelProcessingError } from "../utils/errors.js";
+import {
+  extractFrames,
+  determineFrameSampling,
+  deleteFrames,
+} from "./frameExtractor.js";
 import {
   extractEntities,
   deduplicateEntities,
@@ -153,30 +159,70 @@ export async function processReelV2(
   const startTime = Date.now();
   const tempFiles: string[] = [];
   const cloudinaryPublicIds: string[] = [];
+  let currentStep = "FETCH_MEDIA";
+  let extractedFrameFiles: Array<{ filePath: string }> = [];
 
   try {
     // Step 1: Fetch Instagram media
+    currentStep = "FETCH_MEDIA";
     console.log(`\n[Step 1/10] Fetching Instagram media...`);
     const { result: mediaResult, durationMs: fetchMs } = await measureTime(() =>
       fetchInstagramMedia(instagramUrl),
     );
     console.log(`✓ Fetch complete in ${fetchMs}ms`);
 
-    // Step 2: Download video
-    console.log(`\n[Step 2/10] Downloading video...`);
-    const { result: videoResult, durationMs: downloadMs } = await measureTime(
-      () => downloadVideo(mediaResult.videoUrl),
-    );
+    // Step 2: Download video (or use locally extracted file)
+    currentStep = "DOWNLOAD_VIDEO";
+    let downloadMs = 0;
+    let videoResult: { filePath: string; fileName: string; sizeBytes: number };
+
+    if (mediaResult.localFilePath) {
+      console.log(
+        `\n[Step 2/10] Using pre-downloaded file from ${mediaResult.source || "extractor"}...`,
+      );
+      const measured = await measureTime(async () => {
+        const stats = await fs.stat(mediaResult.localFilePath!);
+        return {
+          filePath: mediaResult.localFilePath!,
+          fileName: path.basename(mediaResult.localFilePath!),
+          sizeBytes: stats.size,
+        };
+      });
+
+      videoResult = measured.result;
+      downloadMs = measured.durationMs;
+      console.log(
+        `✓ Local video ready in ${downloadMs}ms (${(
+          videoResult.sizeBytes /
+          1024 /
+          1024
+        ).toFixed(2)}MB)`,
+      );
+    } else {
+      if (!mediaResult.videoUrl) {
+        throw new ReelProcessingError(
+          "Extractor did not return a downloadable video URL",
+          currentStep,
+        );
+      }
+
+      console.log(`\n[Step 2/10] Downloading video...`);
+      const measured = await measureTime(() => downloadVideo(mediaResult.videoUrl));
+      videoResult = measured.result;
+      downloadMs = measured.durationMs;
+      console.log(
+        `✓ Download complete in ${downloadMs}ms (${(
+          videoResult.sizeBytes /
+          1024 /
+          1024
+        ).toFixed(2)}MB)`,
+      );
+    }
+
     tempFiles.push(videoResult.filePath);
-    console.log(
-      `✓ Download complete in ${downloadMs}ms (${(
-        videoResult.sizeBytes /
-        1024 /
-        1024
-      ).toFixed(2)}MB)`,
-    );
 
     // Step 3: Extract audio
+    currentStep = "EXTRACT_AUDIO";
     console.log(`\n[Step 3/10] Extracting audio...`);
     const { result: audioResult, durationMs: audioExtractMs } =
       await measureTime(() => extractAudioToMp3(videoResult.filePath));
@@ -187,14 +233,17 @@ export async function processReelV2(
     const durationSeconds = audioResult.durationSeconds || 30;
     const frameTimestamps = determineFrameSampling(durationSeconds);
 
+    currentStep = "EXTRACT_FRAMES";
     console.log(`\n[Step 4/10] Extracting ${frameTimestamps.length} frames...`);
     const { result: frameResult, durationMs: frameExtractionMs } =
       await measureTime(() =>
         extractFrames(videoResult.filePath, frameTimestamps),
       );
+    extractedFrameFiles = frameResult.frames;
     console.log(`✓ Frame extraction complete in ${frameExtractionMs}ms`);
 
     // Step 5: Generate thumbnail (for UI)
+    currentStep = "GENERATE_THUMBNAIL";
     console.log(`\n[Step 5/10] Generating thumbnail...`);
     let thumbnailResult: ThumbnailResult;
     let thumbnailMs: number;
@@ -215,6 +264,7 @@ export async function processReelV2(
     }
 
     // Step 6: Transcribe audio
+    currentStep = "TRANSCRIBE_AUDIO";
     console.log(`\n[Step 6/10] Transcribing audio...`);
     const { result: transcriptResult, durationMs: transcriptionMs } =
       await measureTime(() => transcribeAudioWithGemini(audioResult.audioPath));
@@ -226,6 +276,7 @@ export async function processReelV2(
     console.log(
       `\n[Step 7/10] Extracting text from ${frameResult.frames.length} frames (optimized)...`,
     );
+    currentStep = "EXTRACT_OCR";
     let visualTexts: Array<{
       frameTimestamp: number;
       text: string;
@@ -294,6 +345,7 @@ export async function processReelV2(
     }
 
     // Step 8: Analyze Instagram caption
+    currentStep = "ANALYZE_CAPTION";
     console.log(`\n[Step 8/11] Analyzing Instagram caption...`);
     let captionAnalysis: CaptionAnalysisResult | null = null;
     let captionMs = 0;
@@ -322,6 +374,7 @@ export async function processReelV2(
     }
 
     // Step 9: Merge multimodal content
+    currentStep = "MERGE_MULTIMODAL";
     console.log(`\n[Step 9/11] Merging multimodal content...`);
     // Convert frameTimestamp back to timestamp for merger
     const visualTextsForMerger = visualTexts.map((item) => ({
@@ -339,6 +392,7 @@ export async function processReelV2(
     );
 
     // Step 10: Extract entities from all sources
+    currentStep = "EXTRACT_ENTITIES";
     console.log(`\n[Step 10/11] Extracting entities...`);
     let entityExtractionMs = 0;
     let allEntities: any[] = [];
@@ -382,6 +436,7 @@ export async function processReelV2(
     }
 
     // Step 11: Generate AI summary with multimodal context
+    currentStep = "SUMMARIZE";
     console.log(`\n[Step 11/11] Generating multimodal summary...`);
     const { result: summaryResult, durationMs: summarizationMs } =
       await measureTime(() => summarizeWithGroq(mergedContent.mergedText));
@@ -502,7 +557,7 @@ export async function processReelV2(
 
     return {
       sourceUrl: mediaResult.sourceUrl,
-      videoUrl: mediaResult.videoUrl,
+      videoUrl: mediaResult.videoUrl || mediaResult.sourceUrl,
       thumbnailUrl: thumbnailResult.thumbnailUrl,
       title: summaryResult.title,
       transcript: transcriptResult.transcript,
@@ -559,43 +614,34 @@ export async function processReelV2(
   } catch (error) {
     console.error(`\n[Reel Processor V2] Processing failed:`, error);
 
-    let step = "unknown";
-    if (error instanceof Error) {
-      if (
-        error.message.includes("fetch") ||
-        error.message.includes("Instagram")
-      ) {
-        step = "fetch";
-      } else if (error.message.includes("download")) {
-        step = "download";
-      } else if (error.message.includes("audio")) {
-        step = "audio_extraction";
-      } else if (error.message.includes("frame")) {
-        step = "frame_extraction";
-      } else if (error.message.includes("thumbnail")) {
-        step = "thumbnail";
-      } else if (error.message.includes("transcri")) {
-        step = "transcription";
-      } else if (error.message.includes("ocr")) {
-        step = "ocr";
-      } else if (error.message.includes("entity")) {
-        step = "entity_extraction";
-      } else if (error.message.includes("summar")) {
-        step = "summarization";
+    if (error instanceof AppError) {
+      if (!(error as any).step) {
+        (error as any).step = currentStep;
       }
+      throw error;
     }
 
+    const rootCause = error instanceof Error ? error : new Error(String(error));
     throw new ReelProcessingError(
-      `Reel processing V2 failed at step: ${step}`,
-      step,
-      error instanceof Error ? error : new Error(String(error)),
+      `Reel processing V2 failed at step: ${currentStep}. ${rootCause.message}`,
+      currentStep,
+      rootCause,
     );
   } finally {
     // Clean up all temp files
     console.log(`\n[Cleanup] Removing temporary files...`);
+
+    if (extractedFrameFiles.length > 0) {
+      try {
+        await deleteFrames(extractedFrameFiles);
+      } catch (error) {
+        console.warn(`[Cleanup] Failed to delete extracted frames:`, error);
+      }
+    }
+
     for (const filePath of tempFiles) {
       try {
-        if (filePath.includes("/audio/")) {
+        if (filePath.includes(`${path.sep}audio${path.sep}`)) {
           await deleteAudioFile(filePath);
         } else {
           await deleteFile(filePath);

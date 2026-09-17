@@ -1,11 +1,18 @@
-import axios, { AxiosError } from "axios";
 import {
   InvalidInstagramUrlError,
   MediaNotFoundError,
-  PrivateMediaError,
-  UnsupportedMediaError,
 } from "../utils/errors.js";
-import { fetchInstagramMediaWithPuppeteer } from "./puppeteerScraper.js";
+import { INSTAGRAM_URL_REGEX } from "../utils/validators.js";
+import {
+  extractWithInstaloader,
+  extractWithYtDlp,
+  ExtractionStrategyError,
+} from "./instagramCliExtractors.js";
+import {
+  extractWithSocialKit,
+  SocialKitExtractionError,
+} from "./socialKitExtractor.js";
+import { SocialKitConfigurationError } from "../utils/errors.js";
 
 /**
  * Result from Instagram media fetch
@@ -13,27 +20,13 @@ import { fetchInstagramMediaWithPuppeteer } from "./puppeteerScraper.js";
 export interface InstagramMediaResult {
   sourceUrl: string;
   videoUrl: string;
+  source?: "socialkit" | "yt-dlp" | "instaloader";
+  localFilePath?: string;
   title?: string;
   description?: string;
   thumbnailUrl?: string;
   durationSeconds?: number;
 }
-
-/**
- * Cobalt API response structure
- */
-interface CobaltResponse {
-  status: string;
-  url?: string;
-  picker?: Array<{ url: string; type: string }>;
-  text?: string;
-}
-
-const INSTAGRAM_URL_REGEX =
-  /^https?:\/\/(www\.)?instagram\.com\/(reel|p|stories)\/[\w-]+\/?/i;
-
-const MAX_RETRIES = 3;
-const RETRY_DELAYS = [500, 1000, 2000];
 
 /**
  * Clean Instagram URL by removing query parameters
@@ -54,22 +47,87 @@ function cleanInstagramUrl(url: string): string {
 function validateInstagramUrl(url: string): void {
   if (!INSTAGRAM_URL_REGEX.test(url)) {
     throw new InvalidInstagramUrlError(
-      "URL must be a valid Instagram reel, post, or story URL",
+      "URL must be a valid Instagram reel, post, reels, or tv URL",
     );
   }
 }
 
-/**
- * Sleep utility for retry delays
- */
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function envEnabled(name: string, defaultValue: boolean): boolean {
+  const value = process.env[name];
+  if (value === undefined) return defaultValue;
+
+  const normalized = value.trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(normalized)) return true;
+  if (["0", "false", "no", "off"].includes(normalized)) return false;
+
+  return defaultValue;
+}
+
+function sanitizeForLog(value: string): string {
+  return value.replace(/\s+/g, " ").trim().slice(0, 300);
+}
+
+function logStrategyFailure(strategy: string, error: unknown): void {
+  if (error instanceof SocialKitExtractionError) {
+    console.warn(
+      `[Instagram Extractor] ${strategy} failed: ${error.code} - ${error.message}`,
+    );
+    return;
+  }
+
+  if (error instanceof ExtractionStrategyError) {
+    const details = error.details;
+    console.warn(
+      `[Instagram Extractor] ${strategy} failed: ${error.message}; exit=${
+        details?.exitCode ?? "n/a"
+      }; signal=${details?.signal ?? "n/a"}; timedOut=${
+        details?.timedOut ?? false
+      }; durationMs=${details?.durationMs ?? 0}; stderr=${
+        details?.stderr || "none"
+      }`,
+    );
+    return;
+  }
+
+  console.warn(
+    `[Instagram Extractor] ${strategy} failed: ${sanitizeForLog(
+      error instanceof Error ? error.message : String(error),
+    )}`,
+  );
+}
+
+function getStrategyFailureReason(error: unknown): string {
+  if (error instanceof SocialKitExtractionError) {
+    return `${error.code}: ${error.message}`;
+  }
+
+  const rawMessage =
+    error instanceof ExtractionStrategyError
+      ? error.details?.stderr || error.message
+      : error instanceof Error
+        ? error.message
+        : String(error);
+
+  if (
+    /10054|ECONNRESET|ConnectionResetError|connection was forcibly closed|connection reset/i.test(
+      rawMessage,
+    )
+  ) {
+    return "Instagram connection was reset by the network (ECONNRESET); configure EXTRACTOR_PROXY for this network";
+  }
+
+  if (/getaddrinfo failed|NameResolutionError|Could not resolve host/i.test(rawMessage)) {
+    return "Instagram hostname could not be resolved; check DNS or EXTRACTOR_DOH_URL";
+  }
+
+  return sanitizeForLog(rawMessage);
 }
 
 /**
- * Fetch Instagram media using multiple methods with fallback chain:
- * 1. Puppeteer (browser automation - best for deployment)
- * 2. Cobalt API (external API - fallback)
+ * Fetch Instagram media with the configured fallback chain:
+ * 1. SocialKit
+ * 2. yt-dlp
+ * 3. Instaloader
  */
 export async function fetchInstagramMedia(
   instagramUrl: string,
@@ -79,198 +137,73 @@ export async function fetchInstagramMedia(
 
   // Clean URL (remove query parameters)
   const cleanUrl = cleanInstagramUrl(instagramUrl);
-  console.log(`[Instagram Fetcher] Original URL: ${instagramUrl}`);
-  console.log(`[Instagram Fetcher] Cleaned URL: ${cleanUrl}`);
+  console.log(`[Instagram Extractor] Starting extraction`);
+  console.log(`[Instagram Extractor] Original URL: ${instagramUrl}`);
+  console.log(`[Instagram Extractor] Cleaned URL: ${cleanUrl}`);
 
-  // Check scraping method priority
-  // For deployment: Puppeteer (primary) -> Cobalt API (fallback)
-  // yt-dlp requires system installation, not ideal for deployment
-  const usePuppeteer = process.env.USE_PUPPETEER !== "false"; // Default: true
-  const useYtDlp = process.env.USE_YTDLP === "true"; // Default: false
-  const scrapingMethod = process.env.SCRAPING_METHOD || "puppeteer"; // Default: puppeteer
+  const useYtDlp = envEnabled("USE_YTDLP", true);
+  const useInstaloader = envEnabled("USE_INSTALOADER", true);
+  const useSocialKit = envEnabled("USE_SOCIALKIT", true);
+  const failureReasons: string[] = [];
 
-  // Method 1: Try Puppeteer first (best for deployment)
-  if (
-    usePuppeteer ||
-    scrapingMethod === "puppeteer" ||
-    scrapingMethod === "auto"
-  ) {
+  if (useSocialKit) {
+    const startedAt = Date.now();
+    console.log(`[Instagram Extractor] Strategy: SocialKit`);
     try {
+      const result = await extractWithSocialKit(cleanUrl);
       console.log(
-        `[Instagram Fetcher] Attempting fetch with Puppeteer scraper (PRIMARY)...`,
+        `[Instagram Extractor] Strategy success: SocialKit (${Date.now() - startedAt}ms)`,
       );
-      const result = await fetchInstagramMediaWithPuppeteer(cleanUrl);
-      console.log(`[Instagram Fetcher] ✓ Successfully fetched with Puppeteer`);
       return result;
     } catch (error) {
-      console.warn(
-        `[Instagram Fetcher] Puppeteer failed, trying fallback methods...`,
-      );
-      console.warn(
-        `[Instagram Fetcher] Puppeteer error:`,
-        error instanceof Error ? error.message : error,
-      );
-
-      // If Puppeteer is the only method, throw the error
-      if (scrapingMethod === "puppeteer") {
+      if (error instanceof SocialKitConfigurationError) {
         throw error;
       }
-      // Continue to next method only if scrapingMethod is "auto"
+
+      logStrategyFailure("SocialKit", error);
+      failureReasons.push(`SocialKit: ${getStrategyFailureReason(error)}`);
+      console.warn(`[Instagram Extractor] SocialKit failed, trying yt-dlp`);
     }
+  } else {
+    console.log(`[Instagram Extractor] Strategy skipped: SocialKit disabled`);
   }
 
-  // Method 2: Try Cobalt API (fallback)
-  // Cobalt API is used as last resort fallback
-  const cobaltApiUrl = process.env.COBALT_API_URL || "https://api.cobalt.tools";
-
-  let lastError: Error | null = null;
-
-  // Retry logic with exponential backoff
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+  if (useYtDlp) {
+    const startedAt = Date.now();
+    console.log(`[Instagram Extractor] Strategy: yt-dlp`);
     try {
+      const result = await extractWithYtDlp(cleanUrl);
       console.log(
-        `[Instagram Fetcher] Attempt ${
-          attempt + 1
-        }/${MAX_RETRIES} for ${cleanUrl}`,
+        `[Instagram Extractor] Strategy success: yt-dlp (${Date.now() - startedAt}ms)`,
       );
-
-      const response = await axios.post<CobaltResponse>(
-        cobaltApiUrl,
-        {
-          url: cleanUrl,
-          vCodec: "h264",
-          vQuality: "720",
-          aFormat: "mp3",
-          filenamePattern: "basic",
-          isAudioOnly: false,
-        },
-        {
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-            // Note: Cobalt API may require authentication
-            // If you have a Cobalt API key, add it here:
-            // Authorization: `Bearer ${process.env.COBALT_API_KEY}`,
-          },
-          timeout: 30000, // 30 second timeout
-        },
-      );
-
-      const data = response.data;
-
-      console.log(`[Instagram Fetcher] Cobalt response status: ${data.status}`);
-
-      // Check for successful response
-      if (data.status === "error" || data.status === "rate-limit") {
-        console.error(`[Instagram Fetcher] Cobalt error: ${data.text}`);
-        throw new MediaNotFoundError(
-          data.text || "Cobalt API returned an error",
-        );
-      }
-
-      // Extract video URL
-      let videoUrl: string | undefined;
-
-      if (data.url) {
-        videoUrl = data.url;
-      } else if (data.picker && data.picker.length > 0) {
-        // Find video in picker
-        const videoItem = data.picker.find((item: any) =>
-          item.type.includes("video"),
-        );
-        videoUrl = videoItem?.url;
-      }
-
-      if (!videoUrl) {
-        console.error(
-          `[Instagram Fetcher] No video URL in response:`,
-          JSON.stringify(data, null, 2),
-        );
-        throw new MediaNotFoundError("No video URL found in Cobalt response");
-      }
-
-      console.log(`[Instagram Fetcher] Successfully fetched media`);
-
-      return {
-        sourceUrl: instagramUrl,
-        videoUrl,
-        title: undefined,
-        description: undefined,
-        thumbnailUrl: undefined,
-        durationSeconds: undefined,
-      };
+      return result;
     } catch (error) {
-      lastError = error as Error;
-
-      // Check for specific error types that shouldn't be retried
-      if (error instanceof InvalidInstagramUrlError) {
-        throw error;
-      }
-
-      if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError;
-
-        // Log detailed error information
-        console.error(
-          `[Instagram Fetcher] Axios error:`,
-          axiosError.response?.status,
-          axiosError.response?.data,
-        );
-
-        // Private account or forbidden
-        if (axiosError.response?.status === 403) {
-          throw new PrivateMediaError(
-            "Cannot access private or restricted media",
-          );
-        }
-
-        // Not found
-        if (axiosError.response?.status === 404) {
-          throw new MediaNotFoundError("Media not found or has been deleted");
-        }
-
-        // Bad request - check if it's a Cobalt API issue
-        if (axiosError.response?.status === 400) {
-          const responseData = axiosError.response.data as any;
-          console.error(`[Instagram Fetcher] 400 error details:`, responseData);
-
-          // Check for JWT authentication error
-          if (responseData?.error?.code === "error.api.auth.jwt.missing") {
-            throw new MediaNotFoundError(
-              "Cobalt API requires authentication. Please self-host Cobalt or use an alternative (see COBALT_AUTH_SOLUTION.md)",
-            );
-          }
-
-          if (
-            responseData?.text?.includes("unsupported") ||
-            responseData?.text?.includes("not supported")
-          ) {
-            throw new UnsupportedMediaError("This media type is not supported");
-          }
-
-          // If it's a Cobalt API error, include the message
-          if (responseData?.text) {
-            throw new MediaNotFoundError(
-              `Cobalt API error: ${responseData.text}`,
-            );
-          }
-        }
-      }
-
-      // If not the last attempt, wait and retry
-      if (attempt < MAX_RETRIES - 1) {
-        const delay = RETRY_DELAYS[attempt];
-        console.log(
-          `[Instagram Fetcher] Retrying in ${delay}ms after error:`,
-          error instanceof Error ? error.message : error,
-        );
-        await sleep(delay);
-      }
+      logStrategyFailure("yt-dlp", error);
+      failureReasons.push(`yt-dlp: ${getStrategyFailureReason(error)}`);
     }
+  } else {
+    console.log(`[Instagram Extractor] Strategy skipped: yt-dlp disabled`);
   }
 
-  // All retries failed
+  if (useInstaloader) {
+    const startedAt = Date.now();
+    console.log(`[Instagram Extractor] Strategy: Instaloader`);
+    try {
+      const result = await extractWithInstaloader(cleanUrl);
+      console.log(
+        `[Instagram Extractor] Strategy success: Instaloader (${Date.now() - startedAt}ms)`,
+      );
+      return result;
+    } catch (error) {
+      logStrategyFailure("instaloader", error);
+      failureReasons.push(`Instaloader: ${getStrategyFailureReason(error)}`);
+    }
+  } else {
+    console.log(`[Instagram Extractor] Strategy skipped: Instaloader disabled`);
+  }
+
+  console.error(`[Instagram Extractor] All extraction strategies failed`);
   throw new MediaNotFoundError(
-    `Failed to fetch Instagram media after ${MAX_RETRIES} attempts: ${lastError?.message}`,
+    `Failed to extract Instagram media. ${failureReasons.join(" | ")}`,
   );
 }

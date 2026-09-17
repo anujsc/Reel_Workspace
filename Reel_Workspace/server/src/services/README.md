@@ -11,7 +11,7 @@ Services will be organized by functionality:
 - `auth.service.ts` - Authentication logic (JWT, password hashing)
 - `gemini.service.ts` - Google Gemini AI integration
 - `cloudinary.service.ts` - Cloudinary media upload/management
-- `cobalt.service.ts` - Cobalt API for video downloads
+- `instagramCliExtractors.ts` - yt-dlp and Instaloader extraction strategies
 - `reel.service.ts` - Reel processing pipeline
 - `ocr.service.ts` - OCR processing using Gemini Vision
 

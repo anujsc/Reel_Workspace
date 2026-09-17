@@ -1,6 +1,6 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
-import dotenv from "dotenv";
+import "dotenv/config";
 import helmet from "helmet";
 import { connectDB } from "./config/db.js";
 import { authRoutes } from "./routes/auth.routes.js";
@@ -10,24 +10,18 @@ import { searchRoutes } from "./routes/search.routes.js";
 import { shareRoutes } from "./routes/share.routes.js";
 import { chatRoutes } from "./routes/chat.routes.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
-import { browserPool } from "./services/browserPool.js";
 import { KeepAliveService } from "./services/keepAlive.js";
-
-// Load environment variables
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const clientUrl = process.env.CLIENT_URL?.trim();
 
 // Security Middleware
 app.use(helmet());
 
 // CORS Middleware
 const allowedOrigins = [
-  process.env.CLIENT_URL,
-  "http://localhost:5173",
-  "http://localhost:8080",
-  "http://localhost:3000",
+  clientUrl,
 ].filter(Boolean);
 
 app.use(
@@ -61,12 +55,7 @@ app.get("/api/health", (req: Request, res: Response) => {
     environment: process.env.NODE_ENV || "development",
     cors: {
       clientUrl: process.env.CLIENT_URL || "not set",
-      allowedOrigins: [
-        process.env.CLIENT_URL,
-        "http://localhost:5173",
-        "http://localhost:8080",
-        "http://localhost:3000",
-      ].filter(Boolean),
+      allowedOrigins,
     },
   });
 });
@@ -107,6 +96,22 @@ app.use(errorHandler);
  */
 const startServer = async () => {
   try {
+    if (process.env.NODE_ENV === "production") {
+      const requiredEnvironment = ["CLIENT_URL", "SERVER_URL"];
+      if (process.env.USE_SOCIALKIT !== "false") {
+        requiredEnvironment.push("SOCIALKIT_ACCESS_KEY");
+      }
+
+      const missingEnvironment = requiredEnvironment.filter(
+        (name) => !process.env[name]?.trim(),
+      );
+      if (missingEnvironment.length > 0) {
+        throw new Error(
+          `Missing production environment variables: ${missingEnvironment.join(", ")}`,
+        );
+      }
+    }
+
     // Connect to MongoDB
     await connectDB();
 
@@ -114,7 +119,9 @@ const startServer = async () => {
     app.listen(PORT, () => {
       console.log(`✅ Server running on port ${PORT}`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
-      console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
+      console.log(
+        `🔗 Health check: ${process.env.SERVER_URL?.replace(/\/$/, "") || "[SERVER_URL not configured]"}/api/health`,
+      );
 
       // Start keep-alive service in production
       const keepAlive = KeepAliveService.getInstance();
@@ -131,8 +138,6 @@ process.on("SIGTERM", async () => {
   console.log("⚠️  SIGTERM received, shutting down gracefully...");
   const keepAlive = KeepAliveService.getInstance();
   keepAlive.stop();
-  console.log("[Shutdown] Closing browser pool...");
-  await browserPool.shutdown();
   console.log("[Shutdown] Complete");
   process.exit(0);
 });
@@ -141,8 +146,6 @@ process.on("SIGINT", async () => {
   console.log("⚠️  SIGINT received, shutting down gracefully...");
   const keepAlive = KeepAliveService.getInstance();
   keepAlive.stop();
-  console.log("[Shutdown] Closing browser pool...");
-  await browserPool.shutdown();
   console.log("[Shutdown] Complete");
   process.exit(0);
 });

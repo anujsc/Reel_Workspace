@@ -284,6 +284,15 @@ export const errorHandler = (
       });
     }
 
+    if ((err as any).rootCause?.message) {
+      errors = errors || [];
+      errors.push({
+        field: "cause",
+        message: (err as any).rootCause.message,
+        code: "PROCESSING_ERROR",
+      });
+    }
+
     if ((err as any).service) {
       errors = errors || [];
       errors.push({

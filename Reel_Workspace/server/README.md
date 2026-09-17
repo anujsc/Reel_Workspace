@@ -30,7 +30,7 @@ AI-powered Instagram Reel knowledge extraction and organization platform. Extrac
   - Groq AI (summarization and OCR)
 - **Media Processing**:
   - FFmpeg (audio extraction)
-  - yt-dlp / Cobalt API (video download)
+  - yt-dlp + Instaloader (Instagram extraction fallback)
   - Cloudinary (media storage)
 - **Validation**: express-validator
 - **Security**: Helmet, CORS
@@ -40,7 +40,7 @@ AI-powered Instagram Reel knowledge extraction and organization platform. Extrac
 - Node.js (v18 or higher)
 - MongoDB (local or Atlas)
 - FFmpeg (for audio extraction)
-- yt-dlp (optional, for video download)
+- Python 3 with pip (for yt-dlp and Instaloader)
 
 ## 🔧 Installation
 
@@ -89,9 +89,19 @@ GROQ_API_KEY=your-groq-api-key
 GROQ_MODEL=llama-3.3-70b-versatile
 GROQ_VISION_MODEL=meta-llama/llama-4-scout-17b-16e-instruct
 
-# Video Download Service
-COBALT_API_URL=https://api.cobalt.tools
+# Instagram extraction strategies
+USE_SOCIALKIT=true
+SOCIALKIT_ACCESS_KEY=your-socialkit-access-key
+SOCIALKIT_TIMEOUT_MS=30000
 USE_YTDLP=true
+USE_INSTALOADER=true
+PYTHON_EXECUTABLE=python3
+EXTRACTOR_DOH_URL=https://cloudflare-dns.com/dns-query
+# Optional when the network resets direct Instagram TLS
+# EXTRACTOR_PROXY=http://127.0.0.1:8080
+YTDLP_TIMEOUT_MS=120000
+INSTALOADER_TIMEOUT_MS=120000
+EXTRACT_MAX_FILE_SIZE_MB=50
 ```
 
 4. **Install FFmpeg**
@@ -112,12 +122,12 @@ sudo apt install ffmpeg
 **Windows:**
 Download from [ffmpeg.org](https://ffmpeg.org/download.html) and add to PATH
 
-5. **Install yt-dlp (optional)**
+5. **Install extractor dependencies (optional for local if already present)**
 
 ```bash
-pip install yt-dlp
+python -m pip install yt-dlp instaloader
 # or
-brew install yt-dlp
+python3 -m pip install yt-dlp instaloader
 ```
 
 ## 🚀 Running the Server
@@ -208,8 +218,17 @@ server/
 | `GROQ_API_KEY`               | Groq API key                         | Yes      | -                                         |
 | `GROQ_MODEL`                 | Groq model for summarization         | No       | llama-3.3-70b-versatile                   |
 | `GROQ_VISION_MODEL`          | Groq vision model for OCR            | No       | meta-llama/llama-4-scout-17b-16e-instruct |
-| `COBALT_API_URL`             | Cobalt API URL                       | No       | https://api.cobalt.tools                  |
-| `USE_YTDLP`                  | Use yt-dlp for downloads             | No       | true                                      |
+| `USE_YTDLP`                  | Enable yt-dlp extraction strategy    | No       | true                                      |
+| `USE_INSTALOADER`            | Enable Instaloader extraction fallback | No     | true                                      |
+| `USE_SOCIALKIT`              | Enable SocialKit as the primary extraction strategy | No | true |
+| `SOCIALKIT_ACCESS_KEY`       | Backend-only SocialKit access key    | Yes      | unset                                     |
+| `SOCIALKIT_TIMEOUT_MS`       | SocialKit request timeout in milliseconds | No | 30000 |
+| `PYTHON_EXECUTABLE`          | Python executable for CLI tools      | No       | python3                                   |
+| `EXTRACTOR_DOH_URL`          | DNS-over-HTTPS endpoint for extractors | No      | https://cloudflare-dns.com/dns-query      |
+| `EXTRACTOR_PROXY`            | Optional proxy for Instagram traffic | No       | unset                                     |
+| `YTDLP_TIMEOUT_MS`           | yt-dlp process timeout in ms         | No       | 120000                                    |
+| `INSTALOADER_TIMEOUT_MS`     | Instaloader process timeout in ms    | No       | 120000                                    |
+| `EXTRACT_MAX_FILE_SIZE_MB`   | Max extracted file size in MB        | No       | 50 (prod) / 200 (dev)                     |
 
 ## 🧪 Testing
 
@@ -269,10 +288,12 @@ curl http://localhost:5000/
 
 **Solution**:
 
-- Try toggling `USE_YTDLP` between true/false
 - Verify Instagram URL is valid and public
-- Check yt-dlp is installed: `yt-dlp --version`
-- Ensure Cobalt API is accessible
+- Check Python is available: `python --version` or `python3 --version`
+- Check yt-dlp is installed: `python -m yt_dlp --version`
+- Check Instaloader is installed: `python -m instaloader --version`
+- Review extractor logs to see which strategy failed (yt-dlp or Instaloader)
+- If both strategies report `ECONNRESET` or Windows error `10054`, configure `EXTRACTOR_PROXY` with a permitted HTTP/SOCKS proxy. This indicates the current network is resetting Instagram TLS, not that the reel is missing.
 
 ### Cloudinary Upload Errors
 

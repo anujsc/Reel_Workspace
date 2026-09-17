@@ -11,8 +11,7 @@ export class KeepAliveService {
   private serverUrl: string;
 
   private constructor() {
-    this.serverUrl =
-      process.env.SERVER_URL || `http://localhost:${process.env.PORT || 5000}`;
+    this.serverUrl = process.env.SERVER_URL?.trim() || "";
   }
 
   static getInstance(): KeepAliveService {
@@ -35,6 +34,13 @@ export class KeepAliveService {
     // Only run in production
     if (process.env.NODE_ENV !== "production") {
       console.log("ℹ️  Keep-alive service disabled in development");
+      return;
+    }
+
+    if (!this.serverUrl) {
+      console.warn(
+        "⚠️  Keep-alive service disabled: SERVER_URL is not configured",
+      );
       return;
     }
 

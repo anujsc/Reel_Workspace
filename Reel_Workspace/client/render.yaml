@@ -1,12 +1,12 @@
 services:
   - type: web
-    name: reel-workspace-client
+    name: reel-workspace-frontend
     env: static
     region: oregon
     plan: free
     rootDir: Reel_Workspace/client
     buildCommand: npm ci && npm run build
-    staticPublishPath: ./build
+    staticPublishPath: ./dist
     headers:
       - path: /*
         name: X-Frame-Options
@@ -26,4 +26,4 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_BASE_URL
-        value: https://reel-workspace.onrender.com
+        value: https://reel-workspace-api.onrender.com

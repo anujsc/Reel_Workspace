@@ -4,7 +4,7 @@ import { Reel, Folder } from "@/types/reel";
 import { Button } from "@/components/ui/button";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { ArrowLeft, ExternalLink, Eye } from "lucide-react";
-import axios from "axios";
+import api from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 
 export default function SharedFolder() {
@@ -23,9 +23,7 @@ export default function SharedFolder() {
 
   const fetchSharedFolder = async () => {
     try {
-      const baseUrl =
-        import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
-      const response = await axios.get(`${baseUrl}/api/share/${shareToken}`);
+      const response = await api.get(`/api/share/${shareToken}`);
 
       setFolder(response.data.data.folder);
       setReels(response.data.data.reels);

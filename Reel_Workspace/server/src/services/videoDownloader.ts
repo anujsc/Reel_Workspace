@@ -61,6 +61,15 @@ function generateUniqueFilename(): string {
   return `video_${timestamp}_${random}.mp4`;
 }
 
+function sanitizeUrlForLog(videoUrl: string): string {
+  try {
+    const parsedUrl = new URL(videoUrl);
+    return `${parsedUrl.origin}${parsedUrl.pathname}`;
+  } catch {
+    return "[invalid URL]";
+  }
+}
+
 /**
  * Download video from URL to temp directory
  */
@@ -72,7 +81,9 @@ export async function downloadVideo(
   const fileName = generateUniqueFilename();
   const filePath = path.join(TEMP_VIDEO_DIR, fileName);
 
-  console.log(`[Video Downloader] Starting download from ${videoUrl}`);
+  console.log(
+    `[Video Downloader] Starting download from ${sanitizeUrlForLog(videoUrl)}`,
+  );
   console.log(`[Video Downloader] Saving to ${filePath}`);
   const perfStart = Date.now();
 

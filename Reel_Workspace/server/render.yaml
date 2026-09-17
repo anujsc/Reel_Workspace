@@ -11,9 +11,29 @@ services:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 5000
+        value: 10000
       - key: SERVER_URL
         value: https://reel-workspace-api.onrender.com
-      - key: PUPPETEER_CACHE_DIR
-        value: /opt/render/project/.cache/puppeteer
+      - key: CLIENT_URL
+        value: https://reel-workspace-frontend.onrender.com
+      - key: USE_YTDLP
+        value: "true"
+      - key: USE_INSTALOADER
+        value: "true"
+      - key: USE_SOCIALKIT
+        value: "true"
+      - key: SOCIALKIT_ACCESS_KEY
+        sync: false
+      - key: SOCIALKIT_TIMEOUT_MS
+        value: "30000"
+      - key: PYTHON_EXECUTABLE
+        value: python3
+      - key: EXTRACTOR_DOH_URL
+        value: https://cloudflare-dns.com/dns-query
+      - key: YTDLP_TIMEOUT_MS
+        value: "120000"
+      - key: INSTALOADER_TIMEOUT_MS
+        value: "120000"
+      - key: EXTRACT_MAX_FILE_SIZE_MB
+        value: "50"
       # Add your other environment variables in Render dashboard

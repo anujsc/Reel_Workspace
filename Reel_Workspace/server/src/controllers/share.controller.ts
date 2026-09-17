@@ -4,9 +4,24 @@ import { Folder } from "../models/Folder.js";
 import { FolderShare } from "../models/FolderShare.js";
 import { Reel } from "../models/Reel.js";
 import { successResponse, createdResponse } from "../utils/response.js";
-import { NotFoundError, ValidationError } from "../utils/errors.js";
+import {
+  InternalServerError,
+  NotFoundError,
+  ValidationError,
+} from "../utils/errors.js";
 import mongoose from "mongoose";
 import { nanoid } from "nanoid";
+
+function getClientUrl(): string {
+  const clientUrl = process.env.CLIENT_URL?.trim();
+  if (!clientUrl) {
+    throw new InternalServerError(
+      "CLIENT_URL must be configured to create share links",
+    );
+  }
+
+  return clientUrl.replace(/\/$/, "");
+}
 
 /**
  * Create a shareable link for a folder
@@ -54,7 +69,7 @@ export const createFolderShare = async (
 
   if (folderShare) {
     // Return existing share
-    const baseUrl = process.env.CLIENT_URL || "http://localhost:8080";
+    const baseUrl = getClientUrl();
     const shareUrl = `${baseUrl}/shared/${folderShare.shareToken}`;
 
     successResponse(
@@ -92,7 +107,7 @@ export const createFolderShare = async (
   });
 
   // Generate shareable URL
-  const baseUrl = process.env.CLIENT_URL || "http://localhost:8080";
+  const baseUrl = getClientUrl();
   const shareUrl = `${baseUrl}/shared/${shareToken}`;
 
   createdResponse(
@@ -273,7 +288,7 @@ export const getFolderShareStatus = async (
     return;
   }
 
-  const baseUrl = process.env.CLIENT_URL || "http://localhost:8080";
+  const baseUrl = getClientUrl();
   const shareUrl = `${baseUrl}/shared/${folderShare.shareToken}`;
 
   successResponse(

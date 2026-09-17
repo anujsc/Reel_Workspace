@@ -21,13 +21,15 @@ const __dirname = path.dirname(__filename);
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, "../../.env") });
 
-const MONGODB_URI =
-  process.env.MONGODB_URI || "mongodb://localhost:27017/reelmind";
-
 async function fixReelUniqueIndex() {
   try {
+    const mongoUri = process.env.MONGODB_URI;
+    if (!mongoUri) {
+      throw new Error("MONGODB_URI is required to run this migration");
+    }
+
     console.log("🔌 Connecting to MongoDB...");
-    await mongoose.connect(MONGODB_URI);
+    await mongoose.connect(mongoUri);
     console.log("✅ Connected to MongoDB");
 
     const db = mongoose.connection.db!;
